@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Public Country by Country Reporting Database{% endblock %}</title>
+    <title>{% block title %}Public country by country reports{% endblock %}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a2e; background: #f8f9fa; line-height: 1.6; }
@@ -84,7 +84,7 @@
 </head>
 <body>
     <nav>
-        <span class="brand">Public Country by Country Reporting Database</span>
+        <span class="brand">Public country by country reports</span>
         <a href="/" {% if request.path == '/' %}class="active"{% endif %}>Dashboard</a>
         <a href="/companies" {% if '/companies' in request.path %}class="active"{% endif %}>Companies</a>
         <a href="/data-gap" {% if '/data-gap' in request.path %}class="active"{% endif %}>Data Gap</a>
@@ -95,7 +95,7 @@
         {% block content %}{% endblock %}
     </div>
     <footer>
-        Public Country by Country Reporting Database &mdash; Tax Justice Network
+        Public country by country reports &mdash; Tax Justice Network
     </footer>
 </body>
 </html>
