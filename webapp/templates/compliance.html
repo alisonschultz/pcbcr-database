@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Data Gap — Public CbCR Database{% endblock %}
+{% block content %}
+<h1>Data Gap</h1>
+<p class="subtitle">In-scope firms where no public CbCR report has been found yet.
+    Some firms may not be required to publish until December 2026; others may have published reports we haven't located.</p>
+
+<div class="alert-box alert-info">
+    Know of a report we're missing? <a href="/submit-report">Submit it here</a>, or click
+    <span class="btn btn-submit" style="font-size:0.75rem; padding: 0.2rem 0.5rem; cursor:default;">I found a report!</span>
+    next to any country below to submit one for a specific company.
+</div>
+
+<h2>By Headquarter Country</h2>
+
+<h3 style="color: #27ae60; font-size: 1rem; margin-top: 1rem;">Countries with some report data</h3>
+<table>
+    <tr>
+        <th>Country</th>
+        <th>In Scope</th>
+        <th>Report Found</th>
+        <th>Not Yet Found</th>
+        <th>Coverage</th>
+        <th></th>
+        <th></th>
+    </tr>
+    {% for c in gap_with_data %}
+    {% set pct = (c['with_report'] / c['total_in_scope'] * 100) if c['total_in_scope'] > 0 else 0 %}
+    <tr>
+        <td><a href="/companies?country={{ c['country_iso'] }}">{{ c['country_iso'] }}</a></td>
+        <td class="num">{{ "{:,}".format(c['total_in_scope']) }}</td>
+        <td class="num" style="color: #27ae60;">{{ "{:,}".format(c['with_report']) }}</td>
+        <td class="num" style="color: {% if c['without_report'] > 0 %}#e74c3c{% else %}#27ae60{% endif %}">{{ "{:,}".format(c['without_report']) }}</td>
+        <td class="num">{{ "{:.1f}%".format(pct) }}</td>
+        <td style="width: 200px">
+            <div style="background: #f0f0f0; border-radius: 3px; height: 16px; width: 200px; position: relative;">
+                <div class="bar bar-green" style="width: {{ (pct * 2)|int }}px; height: 16px; position: absolute;"></div>
+                <div class="bar bar-red" style="width: {{ ((100 - pct) * 2)|int }}px; height: 16px; position: absolute; left: {{ (pct * 2)|int }}px;"></div>
+            </div>
+        </td>
+        <td>
+            {% if c['without_report'] > 0 %}
+            <a href="/companies?country={{ c['country_iso'] }}&has_report=no" class="btn btn-submit" style="font-size:0.75rem;">View missing</a>
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% if gap_no_data %}
+<h3 style="color: #e74c3c; font-size: 1rem; margin-top: 1.5rem;">Countries with no reports found yet</h3>
+<table>
+    <tr>
+        <th>Country</th>
+        <th>In-Scope Firms</th>
+        <th></th>
+    </tr>
+    {% for c in gap_no_data %}
+    <tr>
+        <td><a href="/companies?country={{ c['country_iso'] }}&has_report=no">{{ c['country_iso'] }}</a></td>
+        <td class="num">{{ "{:,}".format(c['total_in_scope']) }}</td>
+        <td>
+            <a href="/companies?country={{ c['country_iso'] }}&has_report=no" class="btn btn-submit" style="font-size:0.75rem;">View missing</a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endif %}
+
+<h2>By Regime</h2>
+<table>
+    <tr>
+        <th>Regime</th>
+        <th>Total Firms</th>
+        <th>Report Found</th>
+        <th>Not Yet Found</th>
+        <th>Coverage</th>
+    </tr>
+    {% for r in gap_by_regime %}
+    {% set gap = r['total'] - r['with_report'] %}
+    {% set pct = (r['with_report'] / r['total'] * 100) if r['total'] > 0 else 0 %}
+    <tr>
+        <td>{{ r['regime_classification'] }}</td>
+        <td class="num">{{ "{:,}".format(r['total']) }}</td>
+        <td class="num">{{ r['with_report'] }}</td>
+        <td class="num" style="color: {% if gap > 0 %}#e74c3c{% else %}#27ae60{% endif %}">{{ "{:,}".format(gap) }}</td>
+        <td class="num">{{ "{:.1f}%".format(pct) }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<p style="margin-top: 1.5rem; color: #666; font-size: 0.85rem;">
+    Note: EU Directive 2021/2101 requires first filings by 31 December 2026 for fiscal years starting on/after 22 June 2024.
+    Most firms are not yet required to have filed. Current data comes from voluntary disclosures and CRD IV banking requirements.
+</p>
+{% endblock %}

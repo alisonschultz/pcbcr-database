@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{{ firm['company_name'] }} — Public CbCR Database{% endblock %}
+{% block content %}
+<h1>{{ firm['company_name'] }}</h1>
+<p class="subtitle">
+    {{ firm['country_iso'] }}
+    {% if firm['bvd_sector'] %} &middot; {{ firm['bvd_sector'] }}{% endif %}
+    {% if firm['website'] %} &middot; <a href="https://{{ firm['website'] }}" target="_blank">{{ firm['website'] }}</a>{% endif %}
+</p>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="value">{{ firm['country_iso'] }}</div>
+        <div class="label">Headquartered</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ reports|length }}</div>
+        <div class="label">Report-years</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">
+            {% for r in firm['regime_classification'].split('|') %}
+            <span class="badge badge-blue" style="font-size:0.9rem">{{ r }}</span>
+            {% endfor %}
+        </div>
+        <div class="label">Regime(s)</div>
+    </div>
+</div>
+
+{% if firm['guo_name'] and firm['guo_name'] != firm['company_name'] %}
+<p><strong>Global Ultimate Owner:</strong> {{ firm['guo_name'] }} ({{ firm['guo_country_iso'] }})</p>
+{% endif %}
+
+{% if reports %}
+{% for report in reports %}
+<h2>{{ report['report_year'] }} — {{ report['source'] }}</h2>
+
+{% set data = report_data[report['report_id']] %}
+{% if data %}
+<table class="data-table">
+    <tr>
+        <th>Jurisdiction</th>
+        <th>Revenue</th>
+        <th>Profit Before Tax</th>
+        <th>Tax Paid</th>
+        <th>Employees</th>
+    </tr>
+    {% for row in data %}
+    <tr>
+        <td>{{ row['jurisdiction_name'] or row['jurisdiction_code'] or '?' }}</td>
+        <td class="num">{% if row['revenue'] is not none %}{{ "{:,.0f}".format(row['revenue']) }}{% endif %}</td>
+        <td class="num">{% if row['profit_before_tax'] is not none %}{{ "{:,.0f}".format(row['profit_before_tax']) }}{% endif %}</td>
+        <td class="num">{% if row['tax_paid'] is not none %}{{ "{:,.0f}".format(row['tax_paid']) }}{% endif %}</td>
+        <td class="num">{% if row['employees'] is not none %}{{ "{:,.0f}".format(row['employees']) }}{% endif %}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p>No jurisdiction-level data available for this report.</p>
+{% endif %}
+{% endfor %}
+
+{% else %}
+<div class="stat-card alert" style="margin-top: 1.5rem;">
+    <div class="value" style="font-size: 1.2rem;">No CbCR reports found yet</div>
+    <div class="label">This firm is in scope under {{ firm['regime_classification'] }} but no public CbCR data has been located yet.
+        The report may not have been published yet, or we may simply not have found it.</div>
+    <div style="margin-top: 0.8rem;">
+        <a href="/submit-report?bvd_id={{ firm['bvd_id'] }}&company={{ firm['company_name']|urlencode }}" class="btn btn-submit">I found a report!</a>
+    </div>
+</div>
+{% endif %}
+
+<p style="margin-top: 2rem;">
+    <a href="/companies">&larr; Back to company list</a>
+    {% if firm['bvd_id'] %}
+    &middot; <a href="/api/company/{{ firm['bvd_id'] }}">API (JSON)</a>
+    {% endif %}
+</p>
+{% endblock %}

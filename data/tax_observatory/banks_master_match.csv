@@ -1,0 +1,26 @@
+tax_obs_name,bvd_id,match_method
+Standard Chartered,GB00966425,exact
+Crédit Agricole,GBFC012270,fuzzy_92
+Intesa Sanpaolo,GBFC016201,fuzzy_86
+BNP Paribas,CAFEB57848,exact
+BPCE,FRFEB10708,exact
+Deutsche Bank,CAFEB57850,exact
+Unicredit,IT00348170101,fuzzy_82
+ING,GB04677092,fuzzy_80
+Rabobank,AE0043115726,fuzzy_82
+Barclays,GB00048839,exact
+HSBC,GB00617987,exact
+RBS,LULB135944,fuzzy_80
+Banco Santander,GBFC004459,exact
+Nordea,DE3190358583,fuzzy_83
+DZ Bank,US721176368,fuzzy_86
+Handelsbanken,GB11305395,exact
+KBC Bank,BE0462920226,exact
+Lloyds Banking Group,GBSC095000,exact
+Danske Bank,GBFC011846,fuzzy_88
+Commerzbank,DEFEB13190,exact
+SEB Bank,GBSC095237,fuzzy_88
+Swedbank,LT112029651,fuzzy_84
+Nykredit Realkredit,DK12719280,fuzzy_93
+Bankia BFA,NL63278162,fuzzy_80
+Banco Sabadell,GBFC009513,fuzzy_88

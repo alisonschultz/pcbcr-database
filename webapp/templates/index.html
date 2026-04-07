@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Public CbCR Database{% endblock %}
+{% block content %}
+<h1>Public CbCR Database</h1>
+<p class="subtitle">All publicly available country-by-country reporting data in one place</p>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="value">{{ "{:,}".format(in_scope) }}</div>
+        <div class="label">In-scope firms</div>
+    </div>
+    <div class="stat-card success">
+        <div class="value">{{ "{:,}".format(with_reports) }}</div>
+        <div class="label">Firms with CbCR data</div>
+    </div>
+    <div class="stat-card alert">
+        <div class="value">{{ "{:,}".format(data_gap) }}</div>
+        <div class="label">Data gap (no report found yet)</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ "{:,}".format(total_data_rows) }}</div>
+        <div class="label">Jurisdiction-level data rows</div>
+    </div>
+</div>
+
+<h2>Data Sources</h2>
+<table>
+    <tr><th>Source</th><th>Firms</th><th>Reports</th></tr>
+    {% set euto_firms = namespace(v=0) %}
+    {% set euto_reports = namespace(v=0) %}
+    {% for s in sources %}
+        {% if s['source'] in ('taxplorer', 'tax_observatory_banks') %}
+            {% set euto_firms.v = euto_firms.v + s['firms'] %}
+            {% set euto_reports.v = euto_reports.v + s['reports'] %}
+        {% else %}
+            {% set source_labels = {'company_website': 'Company Website', 'user_submission': 'User Submission'} %}
+    <tr>
+        <td>{{ source_labels.get(s['source'], s['source']) }}</td>
+        <td>{{ "{:,}".format(s['firms']) }}</td>
+        <td>{{ "{:,}".format(s['reports']) }}</td>
+    </tr>
+        {% endif %}
+    {% endfor %}
+    {% if euto_firms.v > 0 %}
+    <tr>
+        <td><a href="https://tax-observatory.eu" target="_blank">EU Tax Observatory</a></td>
+        <td>{{ "{:,}".format(euto_firms.v) }}</td>
+        <td>{{ "{:,}".format(euto_reports.v) }}</td>
+    </tr>
+    {% endif %}
+</table>
+
+<h2>In-Scope Firms by Headquarter Country</h2>
+
+<h3 style="color: #27ae60; font-size: 1rem; margin-top: 1rem;">Countries with report data</h3>
+<table>
+    <tr><th>Country</th><th>In-Scope Firms</th><th>With Report</th><th></th></tr>
+    {% for c in countries_with %}
+    <tr>
+        <td><a href="/companies?country={{ c['country_iso'] }}">{{ c['country_iso'] }}</a></td>
+        <td class="num">{{ "{:,}".format(c['n']) }}</td>
+        <td class="num" style="color: #27ae60;">{{ "{:,}".format(c['with_report']) }}</td>
+        <td><div class="bar bar-green" style="width: {{ (c['with_report'] / countries_with[0]['with_report'] * 200)|int }}px"></div></td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% if countries_without %}
+<h3 style="color: #e74c3c; font-size: 1rem; margin-top: 1.5rem;">Countries with no reports found yet</h3>
+<table>
+    <tr><th>Country</th><th>In-Scope Firms</th><th></th></tr>
+    {% for c in countries_without %}
+    <tr>
+        <td><a href="/companies?country={{ c['country_iso'] }}&has_report=no">{{ c['country_iso'] }}</a></td>
+        <td class="num">{{ "{:,}".format(c['n']) }}</td>
+        <td><div class="bar bar-red" style="width: {{ (c['n'] / countries_without[0]['n'] * 150)|int }}px"></div></td>
+    </tr>
+    {% endfor %}
+</table>
+{% endif %}
+
+<h2>In-Scope by Regime</h2>
+{% set regime_labels = {
+    'EU_2021_2101': 'EU Directive 2021/2101',
+    'CRD_IV': 'CRD IV (Banks)',
+    'EU_2021_2101|CRD_IV': 'EU Directive 2021/2101 + CRD IV',
+    'EU_2021_2101_VIA_SUBSIDIARY': 'EU Directive 2021/2101 (via EU subsidiary)',
+    'CRD_IV_VIA_SUBSIDIARY': 'CRD IV (via EU subsidiary)',
+    'EU_2021_2101_VIA_SUBSIDIARY|CRD_IV_VIA_SUBSIDIARY': 'EU Directive 2021/2101 + CRD IV (via EU subsidiary)',
+    'EU_2021_2101_CANDIDATE': 'EU Directive 2021/2101 (candidate)',
+    'CRD_IV_CANDIDATE': 'CRD IV (candidate)',
+    'EU_2021_2101_CANDIDATE|CRD_IV_CANDIDATE': 'EU Directive 2021/2101 + CRD IV (candidate)',
+    'UNKNOWN': 'Classification pending',
+} %}
+<table>
+    <tr><th>Regime</th><th>Firms</th></tr>
+    {% for r in regimes %}
+    <tr>
+        <td>{{ regime_labels.get(r['regime_classification'], r['regime_classification']) }}</td>
+        <td class="num">{{ "{:,}".format(r['n']) }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% if report_stats %}
+<h2>Data at a Glance</h2>
+<p class="subtitle">Summary across {{ "{:,}".format(report_stats['report_count']) }} firm-year reports covering {{ report_stats['year_min'] }}–{{ report_stats['year_max'] }}, spanning {{ report_stats['jurisdictions'] }} jurisdictions.</p>
+<table>
+    <tr>
+        <th></th>
+        <th>Smallest firm</th>
+        <th>Median firm</th>
+        <th>Largest firm</th>
+    </tr>
+    <tr>
+        <td><strong>Revenue</strong></td>
+        <td class="num">{{ report_stats['rev_min'] }}</td>
+        <td class="num">{{ report_stats['rev_median'] }}</td>
+        <td class="num">{{ report_stats['rev_max'] }}</td>
+    </tr>
+    <tr>
+        <td><strong>Profit before tax</strong></td>
+        <td class="num">{{ report_stats['pbt_min'] }}</td>
+        <td class="num">{{ report_stats['pbt_median'] }}</td>
+        <td class="num">{{ report_stats['pbt_max'] }}</td>
+    </tr>
+    <tr>
+        <td><strong>Tax paid</strong></td>
+        <td class="num">{{ report_stats['tax_min'] }}</td>
+        <td class="num">{{ report_stats['tax_median'] }}</td>
+        <td class="num">{{ report_stats['tax_max'] }}</td>
+    </tr>
+    <tr>
+        <td><strong>Employees</strong></td>
+        <td class="num">{{ report_stats['emp_min'] }}</td>
+        <td class="num">{{ report_stats['emp_median'] }}</td>
+        <td class="num">{{ report_stats['emp_max'] }}</td>
+    </tr>
+</table>
+{% endif %}
+
+<div class="submit-box" style="margin-top: 2rem;">
+    <h2>Know of a public CbCR report we're missing?</h2>
+    <p style="color: #666; font-size: 0.9rem; margin-bottom: 0.8rem;">
+        Help us close the data gap — submit a link to a report and we'll add it to the database.
+    </p>
+    <a href="/submit-report" class="btn btn-submit">Submit a Report</a>
+    <a href="/data-gap" class="btn btn-primary" style="margin-left: 0.5rem;">View Data Gap</a>
+</div>
+{% endblock %}

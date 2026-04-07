@@ -1,0 +1,28 @@
+# Large data files (PDFs, raw Orbis exports)
+data/collected_reports/*.pdf
+data/orbis_exports/
+data/wrds/
+data/national_registers/
+
+# Keep the processed outputs but not the massive raw data
+# data/outputs/ is tracked (DB, CSVs)
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+
+# Submissions (may contain emails)
+data/outputs/submitted_reports.csv

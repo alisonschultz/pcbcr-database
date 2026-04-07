@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Submit a Report — Public CbCR Database{% endblock %}
+{% block content %}
+<h1>Submit a CbCR Report</h1>
+<p class="subtitle">Found a public country-by-country report we're missing? Share the link and we'll add it to the database.</p>
+
+{% if success %}
+<div class="alert-box alert-success">
+    <strong>Thank you!</strong> Your submission has been received. We'll review and process it shortly.
+</div>
+{% endif %}
+
+{% if error %}
+<div class="alert-box alert-error">
+    {{ error }}
+</div>
+{% endif %}
+
+<div class="submit-box">
+    <form method="post" action="/submit-report">
+        <div class="form-row">
+            <div>
+                <label for="company_name">Company name</label>
+                <input type="text" id="company_name" name="company_name"
+                       value="{{ prefill_company or '' }}" placeholder="e.g. Shell plc" required>
+            </div>
+            <div>
+                <label for="report_year">Report year (if known)</label>
+                <input type="number" id="report_year" name="report_year"
+                       min="2010" max="2030" placeholder="e.g. 2024">
+            </div>
+        </div>
+
+        <label for="report_url">Link to the report (PDF or webpage)</label>
+        <input type="url" id="report_url" name="report_url"
+               placeholder="https://example.com/annual-report-2024.pdf" required>
+
+        <input type="hidden" name="bvd_id" value="{{ prefill_bvd_id or '' }}">
+
+        <label for="notes">Notes (optional)</label>
+        <textarea id="notes" name="notes" placeholder="e.g. CbCR table is on page 45 of the sustainability report"></textarea>
+
+        <label for="submitter_email">Your email (optional, for follow-up)</label>
+        <input type="email" id="submitter_email" name="submitter_email" placeholder="you@example.com">
+
+        <button type="submit" class="btn btn-primary" style="margin-top: 1rem; padding: 0.6rem 2rem; font-size: 1rem;">Submit Report</button>
+    </form>
+</div>
+
+<div style="margin-top: 1.5rem; color: #666; font-size: 0.85rem;">
+    <p><strong>What happens next?</strong> Submitted reports are queued for review. If the link contains CbCR data,
+    we'll download the report, extract the jurisdiction-level data, and add it to the database.</p>
+</div>
+{% endblock %}
