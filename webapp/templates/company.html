@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ firm['company_name'] }} — Public CbCR Database{% endblock %}
+{% block title %}{{ firm['company_name'] }} — Public Country-by-Country Reporting Database{% endblock %}
 {% block content %}
 <h1>{{ firm['company_name'] }}</h1>
 <p class="subtitle">
@@ -62,8 +62,8 @@
 
 {% else %}
 <div class="stat-card alert" style="margin-top: 1.5rem;">
-    <div class="value" style="font-size: 1.2rem;">No CbCR reports found yet</div>
-    <div class="label">This firm is in scope under {{ firm['regime_classification'] }} but no public CbCR data has been located yet.
+    <div class="value" style="font-size: 1.2rem;">No country-by-country reports found yet</div>
+    <div class="label">This firm is in scope under {{ firm['regime_classification'] }} but no public country-by-country data has been located yet.
         The report may not have been published yet, or we may simply not have found it.</div>
     <div style="margin-top: 0.8rem;">
         <a href="/submit-report?bvd_id={{ firm['bvd_id'] }}&company={{ firm['company_name']|urlencode }}" class="btn btn-submit">I found a report!</a>

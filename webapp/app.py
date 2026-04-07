@@ -204,7 +204,7 @@ def companies():
                (SELECT GROUP_CONCAT(DISTINCT report_year) FROM reports r WHERE r.bvd_id = f.bvd_id) as report_years
         FROM firms f
         WHERE {where_sql}
-        ORDER BY f.company_name
+        ORDER BY (SELECT COUNT(*) FROM reports r WHERE r.bvd_id = f.bvd_id) DESC, f.company_name
         LIMIT ? OFFSET ?
     """, params + [per_page, (page - 1) * per_page]).fetchall()
 

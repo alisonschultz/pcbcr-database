@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Public CbCR Database{% endblock %}</title>
+    <title>{% block title %}Public Country-by-Country Reporting Database{% endblock %}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a2e; background: #f8f9fa; line-height: 1.6; }
@@ -73,6 +73,10 @@
         .bar-green { background: #27ae60; }
         .bar-red { background: #e74c3c; }
 
+        .progress-bar { display: inline-flex; height: 18px; border-radius: 3px; overflow: hidden; }
+        .progress-bar .found { background: #27ae60; height: 100%; }
+        .progress-bar .missing { background: transparent; height: 100%; border: 1.5px dashed #ccc; border-left: none; box-sizing: border-box; }
+
         .data-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
 
         footer { text-align: center; padding: 2rem; color: #999; font-size: 0.8rem; border-top: 1px solid #eee; margin-top: 2rem; }
@@ -80,7 +84,7 @@
 </head>
 <body>
     <nav>
-        <span class="brand">Public CbCR Database</span>
+        <span class="brand">Public Country-by-Country Reporting Database</span>
         <a href="/" {% if request.path == '/' %}class="active"{% endif %}>Dashboard</a>
         <a href="/companies" {% if '/companies' in request.path %}class="active"{% endif %}>Companies</a>
         <a href="/data-gap" {% if '/data-gap' in request.path %}class="active"{% endif %}>Data Gap</a>
