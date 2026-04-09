@@ -92,11 +92,16 @@
     <tr><th>Regime</th><th>Firms</th></tr>
     {% for r in regimes %}
     <tr>
-        <td>{% if regime_url(r['regime_classification']) %}<a href="{{ regime_url(r['regime_classification']) }}" target="_blank">{{ nice_regime(r['regime_classification']) }}</a>{% else %}{{ nice_regime(r['regime_classification']) }}{% endif %}</td>
+        <td><a href="/companies?regime={{ r['regime_classification'] }}" style="text-decoration:none;">{{ nice_regime(r['regime_classification']) }}</a></td>
         <td class="num">{{ "{:,}".format(r['n']) }}</td>
     </tr>
     {% endfor %}
 </table>
+<p style="font-size: 0.8rem; color: #888; margin-top: 0.3rem;">
+    Official texts:
+    <a href="https://eur-lex.europa.eu/eli/dir/2021/2101/oj" target="_blank">EU Directive 2021/2101</a> &middot;
+    <a href="https://eur-lex.europa.eu/eli/dir/2013/36/oj" target="_blank">CRD IV (Directive 2013/36/EU)</a>
+</p>
 
 {% if report_stats %}
 <h2>Data at a Glance</h2>

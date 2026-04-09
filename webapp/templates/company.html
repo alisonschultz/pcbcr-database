@@ -19,7 +19,7 @@
     </div>
     <div class="stat-card">
         <div class="value">
-            <span class="badge badge-blue" style="font-size:0.9rem">{% if regime_url(firm['regime_classification']) %}<a href="{{ regime_url(firm['regime_classification']) }}" target="_blank" style="color: inherit;">{{ nice_regime(firm['regime_classification']) }}</a>{% else %}{{ nice_regime(firm['regime_classification']) }}{% endif %}</span>
+            <a href="/companies?regime={{ firm['regime_classification'] }}" class="badge badge-blue" style="font-size:0.9rem; text-decoration:none;">{{ nice_regime(firm['regime_classification']) }}</a>
         </div>
         <div class="label">Regime(s)</div>
     </div>
@@ -31,7 +31,7 @@
 
 {% if reports %}
 {% for report in reports %}
-<h2>{{ report['report_year'] }} — {{ nice_source(report['source']) }}</h2>
+<h2 id="year-{{ report['report_year'] }}">{{ report['report_year'] }} — {{ nice_source(report['source']) }}</h2>
 
 {% set data = report_data[report['report_id']] %}
 {% if data %}
@@ -61,7 +61,7 @@
 {% else %}
 <div class="stat-card alert" style="margin-top: 1.5rem;">
     <div class="value" style="font-size: 1.2rem;">No country by country reports found yet</div>
-    <div class="label">This firm is in scope under {% if regime_url(firm['regime_classification']) %}<a href="{{ regime_url(firm['regime_classification']) }}" target="_blank">{{ nice_regime(firm['regime_classification']) }}</a>{% else %}{{ nice_regime(firm['regime_classification']) }}{% endif %} but no public country by country data has been located yet.
+    <div class="label">This firm is in scope under <a href="/companies?regime={{ firm['regime_classification'] }}">{{ nice_regime(firm['regime_classification']) }}</a> but no public country by country data has been located yet.
         The report may not have been published yet, or we may simply not have found it.</div>
     <div style="margin-top: 0.8rem;">
         <a href="/submit-report?bvd_id={{ firm['bvd_id'] }}&company={{ firm['company_name']|urlencode }}" class="btn btn-submit">I found a report!</a>

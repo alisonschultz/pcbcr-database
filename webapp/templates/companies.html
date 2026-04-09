@@ -42,7 +42,7 @@
         <td><a href="/company/{{ f['bvd_id'] }}">{{ f['company_name'] }}</a></td>
         <td>{{ f['country_iso'] }}</td>
         <td>
-            <span class="badge {% if 'VIA_SUB' in f['regime_classification'] %}badge-blue{% elif 'CRD' in f['regime_classification'] %}badge-gray{% else %}badge-green{% endif %}">{% if regime_url(f['regime_classification']) %}<a href="{{ regime_url(f['regime_classification']) }}" target="_blank" style="color: inherit;">{{ nice_regime(f['regime_classification']) }}</a>{% else %}{{ nice_regime(f['regime_classification']) }}{% endif %}</span>
+            <a href="/companies?regime={{ f['regime_classification'] }}" class="badge {% if 'VIA_SUB' in f['regime_classification'] %}badge-blue{% elif 'CRD' in f['regime_classification'] %}badge-gray{% else %}badge-green{% endif %}" style="text-decoration:none;">{{ nice_regime(f['regime_classification']) }}</a>
         </td>
         <td>
             {% if f['report_count'] > 0 %}
@@ -51,9 +51,15 @@
             <span class="badge badge-red">none</span>
             {% endif %}
         </td>
-        <td>{{ f['report_years'] or '' }}</td>
         <td>
-            <a href="/submit-report?bvd_id={{ f['bvd_id'] }}&company={{ f['company_name']|urlencode }}" class="btn btn-submit" style="font-size:0.75rem;">{% if f['report_count'] == 0 %}I found a report!{% else %}Submit another report{% endif %}</a>
+            {% if f['report_years'] %}
+                {% for y in f['report_years'].split(',') %}
+                <a href="/company/{{ f['bvd_id'] }}#year-{{ y }}" class="badge badge-gray" style="text-decoration:none; margin: 1px;">{{ y }}</a>
+                {% endfor %}
+            {% endif %}
+        </td>
+        <td>
+            <a href="/submit-report?bvd_id={{ f['bvd_id'] }}&company={{ f['company_name']|urlencode }}" class="btn btn-submit" style="font-size:0.75rem;">{% if f['report_count'] == 0 %}I found a report!{% else %}Submit another report for this company{% endif %}</a>
         </td>
     </tr>
     {% endfor %}
