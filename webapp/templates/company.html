@@ -33,7 +33,10 @@
 
 {% if reports %}
 {% for report in reports %}
-<h2 id="year-{{ report['report_year'] }}">{{ report['report_year'] }} — {{ nice_source(report['source']) }}</h2>
+<h2 id="year-{{ report['report_year'] }}">{{ firm['company_name'] }} — {{ report['report_year'] }}</h2>
+<p style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">
+    Source: {% if report['source_url'] %}<a href="{{ report['source_url'] }}" target="_blank">{{ nice_source(report['source']) }}</a>{% else %}{{ nice_source(report['source']) }}{% endif %}
+</p>
 
 {% set data = report_data[report['report_id']] %}
 {% if data %}
