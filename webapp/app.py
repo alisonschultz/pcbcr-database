@@ -25,6 +25,41 @@ SUBMISSIONS_CSV = os.path.join(PROJECT_ROOT, 'data', 'outputs', 'submitted_repor
 
 app = Flask(__name__)
 
+REGIME_LABELS = {
+    'EU_2021_2101': 'EU Directive 2021/2101',
+    'CRD_IV': 'CRD IV (banks)',
+    'EU_2021_2101|CRD_IV': 'EU Directive 2021/2101 + CRD IV',
+    'EU_2021_2101_VIA_SUBSIDIARY': 'EU Directive (via EU subsidiary)',
+    'CRD_IV_VIA_SUBSIDIARY': 'CRD IV (via EU subsidiary)',
+    'EU_2021_2101_VIA_SUBSIDIARY|CRD_IV_VIA_SUBSIDIARY': 'EU Directive + CRD IV (via EU subsidiary)',
+    'EU_2021_2101_CANDIDATE': 'EU Directive (candidate)',
+    'CRD_IV_CANDIDATE': 'CRD IV (candidate)',
+    'EU_2021_2101_CANDIDATE|CRD_IV_CANDIDATE': 'EU Directive + CRD IV (candidate)',
+    'UNKNOWN': 'Classification pending',
+}
+
+SOURCE_LABELS = {
+    'company_website': 'Company website',
+    'taxplorer': 'EU Tax Observatory (TAXPLORER)',
+    'tax_observatory_banks': 'EU Tax Observatory (banks)',
+    'user_submission': 'User submission',
+}
+
+
+def nice_regime(raw):
+    """Convert a raw regime string to a nice label."""
+    return REGIME_LABELS.get(raw, raw.replace('_', ' ').title())
+
+
+def nice_source(raw):
+    """Convert a raw source string to a nice label."""
+    return SOURCE_LABELS.get(raw, raw.replace('_', ' ').title())
+
+
+@app.context_processor
+def inject_helpers():
+    return dict(nice_regime=nice_regime, nice_source=nice_source)
+
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)

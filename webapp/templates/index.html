@@ -33,9 +33,8 @@
             {% set euto_firms.v = euto_firms.v + s['firms'] %}
             {% set euto_reports.v = euto_reports.v + s['reports'] %}
         {% else %}
-            {% set source_labels = {'company_website': 'Company Website', 'user_submission': 'User Submission'} %}
     <tr>
-        <td>{{ source_labels.get(s['source'], s['source']) }}</td>
+        <td>{{ nice_source(s['source']) }}</td>
         <td>{{ "{:,}".format(s['firms']) }}</td>
         <td>{{ "{:,}".format(s['reports']) }}</td>
     </tr>
@@ -89,23 +88,11 @@
 {% endif %}
 
 <h2>In-Scope by Regime</h2>
-{% set regime_labels = {
-    'EU_2021_2101': 'EU Directive 2021/2101',
-    'CRD_IV': 'CRD IV (Banks)',
-    'EU_2021_2101|CRD_IV': 'EU Directive 2021/2101 + CRD IV',
-    'EU_2021_2101_VIA_SUBSIDIARY': 'EU Directive 2021/2101 (via EU subsidiary)',
-    'CRD_IV_VIA_SUBSIDIARY': 'CRD IV (via EU subsidiary)',
-    'EU_2021_2101_VIA_SUBSIDIARY|CRD_IV_VIA_SUBSIDIARY': 'EU Directive 2021/2101 + CRD IV (via EU subsidiary)',
-    'EU_2021_2101_CANDIDATE': 'EU Directive 2021/2101 (candidate)',
-    'CRD_IV_CANDIDATE': 'CRD IV (candidate)',
-    'EU_2021_2101_CANDIDATE|CRD_IV_CANDIDATE': 'EU Directive 2021/2101 + CRD IV (candidate)',
-    'UNKNOWN': 'Classification pending',
-} %}
 <table>
     <tr><th>Regime</th><th>Firms</th></tr>
     {% for r in regimes %}
     <tr>
-        <td>{{ regime_labels.get(r['regime_classification'], r['regime_classification']) }}</td>
+        <td>{{ nice_regime(r['regime_classification']) }}</td>
         <td class="num">{{ "{:,}".format(r['n']) }}</td>
     </tr>
     {% endfor %}

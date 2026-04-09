@@ -19,9 +19,7 @@
     </div>
     <div class="stat-card">
         <div class="value">
-            {% for r in firm['regime_classification'].split('|') %}
-            <span class="badge badge-blue" style="font-size:0.9rem">{{ r }}</span>
-            {% endfor %}
+            <span class="badge badge-blue" style="font-size:0.9rem">{{ nice_regime(firm['regime_classification']) }}</span>
         </div>
         <div class="label">Regime(s)</div>
     </div>
@@ -33,7 +31,7 @@
 
 {% if reports %}
 {% for report in reports %}
-<h2>{{ report['report_year'] }} — {{ report['source'] }}</h2>
+<h2>{{ report['report_year'] }} — {{ nice_source(report['source']) }}</h2>
 
 {% set data = report_data[report['report_id']] %}
 {% if data %}
@@ -63,7 +61,7 @@
 {% else %}
 <div class="stat-card alert" style="margin-top: 1.5rem;">
     <div class="value" style="font-size: 1.2rem;">No country by country reports found yet</div>
-    <div class="label">This firm is in scope under {{ firm['regime_classification'] }} but no public country by country data has been located yet.
+    <div class="label">This firm is in scope under {{ nice_regime(firm['regime_classification']) }} but no public country by country data has been located yet.
         The report may not have been published yet, or we may simply not have found it.</div>
     <div style="margin-top: 0.8rem;">
         <a href="/submit-report?bvd_id={{ firm['bvd_id'] }}&company={{ firm['company_name']|urlencode }}" class="btn btn-submit">I found a report!</a>
