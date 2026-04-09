@@ -75,6 +75,9 @@
     <a href="/companies">&larr; Back to company list</a>
     {% if firm['bvd_id'] %}
     &middot; <a href="/api/company/{{ firm['bvd_id'] }}">API (JSON)</a>
+    {% if reports %}
+    &middot; <a href="/api/download/company/{{ firm['bvd_id'] }}" class="btn btn-download">Download this company's data (CSV)</a>
+    {% endif %}
     {% endif %}
 </p>
 {% endblock %}

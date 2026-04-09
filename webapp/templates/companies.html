@@ -25,6 +25,7 @@
         <option value="no" {% if has_report == 'no' %}selected{% endif %}>No report yet (data gap)</option>
     </select>
     <button type="submit">Filter</button>
+    <a href="/api/download/companies?q={{ q }}&country={{ country }}&regime={{ regime }}&has_report={{ has_report }}" class="btn btn-download">Download this list (CSV)</a>
 </form>
 
 <table>

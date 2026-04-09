@@ -8,12 +8,13 @@ Flask app serving the unified CbCR dataset with:
 - API endpoints for data access
 """
 
-from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for
+from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, Response
 import sqlite3
 import pandas as pd
 import json
 import os
 import csv
+import io
 from datetime import datetime
 
 # Paths
@@ -402,6 +403,100 @@ def api_download():
         return send_file(UNIFIED_CSV, as_attachment=True,
                          download_name='pcbcr_unified_data.csv')
     return jsonify({'error': 'Data file not found'}), 404
+
+
+def rows_to_csv_response(rows, filename):
+    """Convert sqlite3.Row results to a CSV download response."""
+    if not rows:
+        return Response('No data', mimetype='text/plain')
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(rows[0].keys())
+    for row in rows:
+        writer.writerow(tuple(row))
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename={filename}'}
+    )
+
+
+@app.route('/api/download/company/<bvd_id>')
+def download_company(bvd_id):
+    db = get_db()
+    firm = db.execute("SELECT * FROM firms WHERE bvd_id = ?", (bvd_id,)).fetchone()
+    name = firm['company_name'].replace(' ', '_')[:40] if firm else bvd_id
+    rows = db.execute("""
+        SELECT f.company_name, f.country_iso, r.report_year, r.source,
+               rd.jurisdiction_code, rd.jurisdiction_name,
+               rd.revenue, rd.profit_before_tax, rd.tax_paid,
+               rd.tax_accrued, rd.employees, rd.tangible_assets,
+               rd.stated_capital, rd.accumulated_earnings, rd.currency
+        FROM report_data rd
+        JOIN reports r ON rd.report_id = r.report_id
+        JOIN firms f ON r.bvd_id = f.bvd_id
+        WHERE r.bvd_id = ?
+        ORDER BY r.report_year, rd.jurisdiction_name
+    """, (bvd_id,)).fetchall()
+    db.close()
+    return rows_to_csv_response(rows, f'{name}_cbcr_data.csv')
+
+
+@app.route('/api/download/companies')
+def download_companies():
+    db = get_db()
+    q = request.args.get('q', '').strip()
+    regime = request.args.get('regime', '')
+    country = request.args.get('country', '')
+    has_report = request.args.get('has_report', '')
+
+    where = ["f.regime_classification NOT LIKE '%OUT_OF_SCOPE%'",
+             "f.regime_classification NOT LIKE '%CANDIDATE%'"]
+    params = []
+    if q:
+        where.append("f.company_name LIKE ?")
+        params.append(f'%{q}%')
+    if regime:
+        where.append("f.regime_classification LIKE ?")
+        params.append(f'%{regime}%')
+    if country:
+        where.append("f.country_iso = ?")
+        params.append(country)
+    if has_report == 'yes':
+        where.append("f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports)")
+    elif has_report == 'no':
+        where.append("f.bvd_id NOT IN (SELECT DISTINCT bvd_id FROM reports)")
+
+    where_sql = ' AND '.join(where)
+    rows = db.execute(f"""
+        SELECT f.bvd_id, f.company_name, f.country_iso, f.regime_classification,
+               f.bvd_sector, f.website,
+               (SELECT COUNT(*) FROM reports r WHERE r.bvd_id = f.bvd_id) as report_count,
+               (SELECT GROUP_CONCAT(DISTINCT report_year) FROM reports r WHERE r.bvd_id = f.bvd_id) as report_years
+        FROM firms f
+        WHERE {where_sql}
+        ORDER BY (SELECT COUNT(*) FROM reports r WHERE r.bvd_id = f.bvd_id) DESC, f.company_name
+    """, params).fetchall()
+    db.close()
+    return rows_to_csv_response(rows, 'companies_list.csv')
+
+
+@app.route('/api/download/data-gap')
+def download_data_gap():
+    db = get_db()
+    rows = db.execute("""
+        SELECT f.country_iso,
+               COUNT(*) as total_in_scope,
+               SUM(CASE WHEN f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports) THEN 1 ELSE 0 END) as with_report,
+               SUM(CASE WHEN f.bvd_id NOT IN (SELECT DISTINCT bvd_id FROM reports) THEN 1 ELSE 0 END) as without_report
+        FROM firms f
+        WHERE f.regime_classification NOT LIKE '%OUT_OF_SCOPE%'
+          AND f.regime_classification NOT LIKE '%CANDIDATE%'
+        GROUP BY f.country_iso
+        ORDER BY total_in_scope DESC
+    """).fetchall()
+    db.close()
+    return rows_to_csv_response(rows, 'data_gap_by_country.csv')
 
 
 if __name__ == '__main__':
