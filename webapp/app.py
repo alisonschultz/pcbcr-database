@@ -253,7 +253,7 @@ def companies():
         SELECT f.bvd_id, f.company_name, f.country_iso, f.regime_classification,
                f.bvd_sector, f.website,
                (SELECT COUNT(*) FROM reports r WHERE r.bvd_id = f.bvd_id) as report_count,
-               (SELECT GROUP_CONCAT(DISTINCT report_year) FROM reports r WHERE r.bvd_id = f.bvd_id) as report_years
+               (SELECT GROUP_CONCAT(DISTINCT report_year ORDER BY report_year) FROM reports r WHERE r.bvd_id = f.bvd_id AND r.report_year > 0) as report_years
         FROM firms f
         WHERE {where_sql}
         ORDER BY (SELECT COUNT(*) FROM reports r WHERE r.bvd_id = f.bvd_id) DESC, f.company_name
@@ -523,7 +523,7 @@ def download_companies():
         SELECT f.bvd_id, f.company_name, f.country_iso, f.regime_classification,
                f.bvd_sector, f.website,
                (SELECT COUNT(*) FROM reports r WHERE r.bvd_id = f.bvd_id) as report_count,
-               (SELECT GROUP_CONCAT(DISTINCT report_year) FROM reports r WHERE r.bvd_id = f.bvd_id) as report_years
+               (SELECT GROUP_CONCAT(DISTINCT report_year ORDER BY report_year) FROM reports r WHERE r.bvd_id = f.bvd_id AND r.report_year > 0) as report_years
         FROM firms f
         WHERE {where_sql}
         ORDER BY (SELECT COUNT(*) FROM reports r WHERE r.bvd_id = f.bvd_id) DESC, f.company_name
