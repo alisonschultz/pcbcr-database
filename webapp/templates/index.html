@@ -10,12 +10,16 @@
         <div class="label">In-scope firms</div>
     </div>
     <div class="stat-card success">
-        <div class="value">{{ "{:,}".format(with_reports) }}</div>
-        <div class="label">Firms with report data</div>
+        <div class="value">{{ "{:,}".format(with_data) }}</div>
+        <div class="label">Firms with extracted data</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ "{:,}".format(with_reports - with_data) }}</div>
+        <div class="label">Report found, data not yet extracted</div>
     </div>
     <div class="stat-card alert">
         <div class="value">{{ "{:,}".format(data_gap) }}</div>
-        <div class="label">Data gap (no report found yet)</div>
+        <div class="label">No report found yet</div>
     </div>
     <div class="stat-card">
         <div class="value">{{ "{:,}".format(total_data_rows) }}</div>

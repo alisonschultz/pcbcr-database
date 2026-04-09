@@ -95,6 +95,7 @@ def index():
           AND regime_classification NOT LIKE '%CANDIDATE%'
     """).fetchone()[0]
     with_reports = db.execute("SELECT COUNT(DISTINCT bvd_id) FROM reports").fetchone()[0]
+    with_data = db.execute("SELECT COUNT(DISTINCT bvd_id) FROM reports WHERE data_extracted = 1").fetchone()[0]
     total_data_rows = db.execute("SELECT COUNT(*) FROM report_data").fetchone()[0]
     data_gap = in_scope - with_reports
 
@@ -206,6 +207,7 @@ def index():
                            total_firms=total_firms,
                            in_scope=in_scope,
                            with_reports=with_reports,
+                           with_data=with_data,
                            data_gap=data_gap,
                            total_data_rows=total_data_rows,
                            sources=sources,
