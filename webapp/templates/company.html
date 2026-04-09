@@ -19,7 +19,9 @@
     </div>
     <div class="stat-card">
         <div class="value">
-            <a href="/companies?regime={{ firm['regime_classification'] }}" class="badge badge-blue" style="font-size:0.9rem; text-decoration:none;">{{ nice_regime(firm['regime_classification']) }}</a>
+            {% for r in firm['regime_classification'].split('|') %}
+            <a href="/companies?regime={{ r }}" class="badge {{ regime_badge_class(r) }}" style="font-size:0.9rem; text-decoration:none; margin: 1px;">{{ nice_regime(r) }}</a>
+            {% endfor %}
         </div>
         <div class="label">Regime(s)</div>
     </div>

@@ -42,7 +42,9 @@
         <td><a href="/company/{{ f['bvd_id'] }}">{{ f['company_name'] }}</a></td>
         <td>{{ f['country_iso'] }}</td>
         <td>
-            <a href="/companies?regime={{ f['regime_classification'] }}" class="badge {% if 'VIA_SUB' in f['regime_classification'] %}badge-blue{% elif 'CRD' in f['regime_classification'] %}badge-gray{% else %}badge-green{% endif %}" style="text-decoration:none;">{{ nice_regime(f['regime_classification']) }}</a>
+            {% for r in f['regime_classification'].split('|') %}
+            <a href="/companies?regime={{ r }}" class="badge {{ regime_badge_class(r) }}" style="text-decoration:none; margin: 1px;">{{ nice_regime(r) }}</a>
+            {% endfor %}
         </td>
         <td>
             {% if f['report_count'] > 0 %}

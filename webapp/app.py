@@ -70,9 +70,23 @@ def nice_source(raw):
     return SOURCE_LABELS.get(raw, raw.replace('_', ' ').title())
 
 
+def regime_badge_class(raw):
+    """Return the CSS badge class for a regime."""
+    if 'VIA_SUBSIDIARY' in raw or 'CANDIDATE' in raw:
+        if 'CRD' in raw and 'EU_2021' not in raw:
+            return 'badge-blue-light'
+        return 'badge-green-light'
+    if 'CRD' in raw and 'EU_2021' not in raw:
+        return 'badge-blue'
+    if 'EU_2021' in raw:
+        return 'badge-green'
+    return 'badge-gray'
+
+
 @app.context_processor
 def inject_helpers():
-    return dict(nice_regime=nice_regime, nice_source=nice_source, regime_url=regime_url)
+    return dict(nice_regime=nice_regime, nice_source=nice_source,
+                regime_url=regime_url, regime_badge_class=regime_badge_class)
 
 
 def get_db():
