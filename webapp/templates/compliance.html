@@ -84,7 +84,7 @@
     {% set gap = r['total'] - r['with_report'] %}
     {% set pct = (r['with_report'] / r['total'] * 100) if r['total'] > 0 else 0 %}
     <tr>
-        <td>{{ nice_regime(r['regime_classification']) }}</td>
+        <td>{% if regime_url(r['regime_classification']) %}<a href="{{ regime_url(r['regime_classification']) }}" target="_blank">{{ nice_regime(r['regime_classification']) }}</a>{% else %}{{ nice_regime(r['regime_classification']) }}{% endif %}</td>
         <td class="num">{{ "{:,}".format(r['total']) }}</td>
         <td class="num">{{ r['with_report'] }}</td>
         <td class="num" style="color: {% if gap > 0 %}#e74c3c{% else %}#27ae60{% endif %}">{{ "{:,}".format(gap) }}</td>

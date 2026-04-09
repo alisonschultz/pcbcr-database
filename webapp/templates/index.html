@@ -92,7 +92,7 @@
     <tr><th>Regime</th><th>Firms</th></tr>
     {% for r in regimes %}
     <tr>
-        <td>{{ nice_regime(r['regime_classification']) }}</td>
+        <td>{% if regime_url(r['regime_classification']) %}<a href="{{ regime_url(r['regime_classification']) }}" target="_blank">{{ nice_regime(r['regime_classification']) }}</a>{% else %}{{ nice_regime(r['regime_classification']) }}{% endif %}</td>
         <td class="num">{{ "{:,}".format(r['n']) }}</td>
     </tr>
     {% endfor %}

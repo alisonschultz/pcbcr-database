@@ -46,9 +46,23 @@ SOURCE_LABELS = {
 }
 
 
+REGIME_URLS = {
+    'EU_2021_2101': 'https://eur-lex.europa.eu/eli/dir/2021/2101/oj',
+    'CRD_IV': 'https://eur-lex.europa.eu/eli/dir/2013/36/oj',
+}
+
+
 def nice_regime(raw):
     """Convert a raw regime string to a nice label."""
     return REGIME_LABELS.get(raw, raw.replace('_', ' ').title())
+
+
+def regime_url(raw):
+    """Return the official EUR-Lex URL for a regime, or None."""
+    for key, url in REGIME_URLS.items():
+        if key in raw:
+            return url
+    return None
 
 
 def nice_source(raw):
@@ -58,7 +72,7 @@ def nice_source(raw):
 
 @app.context_processor
 def inject_helpers():
-    return dict(nice_regime=nice_regime, nice_source=nice_source)
+    return dict(nice_regime=nice_regime, nice_source=nice_source, regime_url=regime_url)
 
 
 def get_db():
