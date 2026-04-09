@@ -53,9 +53,7 @@
         </td>
         <td>{{ f['report_years'] or '' }}</td>
         <td>
-            {% if f['report_count'] == 0 %}
-            <a href="/submit-report?bvd_id={{ f['bvd_id'] }}&company={{ f['company_name']|urlencode }}" class="btn btn-submit" style="font-size:0.75rem;">I found a report!</a>
-            {% endif %}
+            <a href="/submit-report?bvd_id={{ f['bvd_id'] }}&company={{ f['company_name']|urlencode }}" class="btn btn-submit" style="font-size:0.75rem;">{% if f['report_count'] == 0 %}I found a report!{% else %}Submit another report{% endif %}</a>
         </td>
     </tr>
     {% endfor %}
