@@ -132,7 +132,8 @@ def index():
     # Countries by in-scope firms, split by whether they have any reports
     countries_with = db.execute("""
         SELECT f.country_iso, COUNT(*) as n,
-               SUM(CASE WHEN f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports) THEN 1 ELSE 0 END) as with_report
+               SUM(CASE WHEN f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports) THEN 1 ELSE 0 END) as with_report,
+               SUM(CASE WHEN f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports WHERE data_extracted = 1) THEN 1 ELSE 0 END) as with_data
         FROM firms f
         WHERE f.regime_classification NOT LIKE '%OUT_OF_SCOPE%'
           AND f.regime_classification NOT LIKE '%CANDIDATE%'
@@ -216,6 +217,65 @@ def index():
             'emp_min': emps['min'], 'emp_median': emps['median'], 'emp_max': emps['max'],
         }
 
+    # Profit misalignment chart data
+    misalignment_data = None
+    try:
+        df_unified = pd.read_csv(UNIFIED_CSV)
+        df_m = df_unified[df_unified['total_revenues'].notna() & df_unified['profit_before_tax'].notna()].copy()
+
+        # Standardize jurisdiction names
+        jur_map = {
+            'united states of america': 'United States', 'usa': 'United States',
+            'us': 'United States', 'united states': 'United States',
+            'united kingdom': 'United Kingdom', 'uk': 'United Kingdom',
+            'great britain': 'United Kingdom', 'hong kong': 'Hong Kong',
+            'hong kong sar': 'Hong Kong', 'korea, republic of': 'South Korea',
+            'south korea': 'South Korea', 'korea': 'South Korea',
+            'russian federation': 'Russia', 'danmark': 'Denmark',
+            'czech republic': 'Czech Republic', 'czechia': 'Czech Republic',
+            'uae': 'UAE', 'united arab emirates': 'UAE',
+            'türkiye': 'Turkey', 'turkiye': 'Turkey',
+        }
+        agg_cats = {'total','group total','consolidated total','grand total','other',
+                    'others','other countries','other jurisdictions','rest of world',
+                    'rest of the world','row','unallocated','not allocated','intercompany',
+                    'eliminations','consolidation adjustments','adjustments','international',
+                    'worldwide','global','europe','asia','americas','africa','middle east',
+                    'asia pacific','asia-pacific','apac','emea','latam','latin america',
+                    'north america','sub-saharan africa','other europe','other asia',
+                    'other americas','other africa'}
+
+        df_m['jur_clean'] = df_m['jurisdiction_name'].apply(
+            lambda x: jur_map.get(str(x).strip().lower(), str(x).strip()) if pd.notna(x) else None)
+        df_m = df_m[df_m['jur_clean'].notna()]
+        df_m = df_m[~df_m['jur_clean'].str.lower().isin(agg_cats)]
+
+        agg = df_m.groupby('jur_clean').agg(
+            revenue=('total_revenues', 'sum'),
+            profit=('profit_before_tax', 'sum'),
+            n_firms=('company_name', 'nunique')
+        ).reset_index()
+        agg = agg[agg['n_firms'] >= 5]
+
+        total_rev = agg['revenue'].sum()
+        total_profit = agg[agg['profit'] > 0]['profit'].sum()
+
+        if total_rev > 0 and total_profit > 0:
+            agg['revenue_share'] = (agg['revenue'] / total_rev * 100).round(1)
+            agg['profit_share'] = (agg['profit'] / total_profit * 100).round(1)
+            agg['misalignment'] = agg['profit_share'] - agg['revenue_share']
+
+            top = agg.nlargest(15, 'revenue')
+            misalignment_data = {
+                'labels': top['jur_clean'].tolist(),
+                'revenue_share': top['revenue_share'].tolist(),
+                'profit_share': top['profit_share'].tolist(),
+                'n_firms': top['n_firms'].tolist(),
+                'total_firms': int(df_m['company_name'].nunique()),
+            }
+    except Exception:
+        pass
+
     db.close()
     return render_template('index.html',
                            total_firms=total_firms,
@@ -228,7 +288,8 @@ def index():
                            regimes=regimes,
                            countries_with=countries_with,
                            countries_without=countries_without,
-                           report_stats=report_stats)
+                           report_stats=report_stats,
+                           misalignment_data=misalignment_data)
 
 
 @app.route('/companies')
