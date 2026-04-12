@@ -10,16 +10,16 @@
         <div class="label">In-scope firms</div>
     </div>
     <div class="stat-card success">
-        <div class="value">{{ "{:,}".format(with_reports) }}</div>
-        <div class="label">Firms with a report found</div>
+        <div class="value">{{ "{:,}".format(with_data) }}</div>
+        <div class="label">Firms with CbCR data</div>
     </div>
     <div class="stat-card alert">
         <div class="value">{{ "{:,}".format(data_gap) }}</div>
-        <div class="label">No report found yet</div>
+        <div class="label">No CbCR data yet</div>
     </div>
     <div class="stat-card">
-        <div class="value">{{ "{:,}".format(with_data) }}</div>
-        <div class="label">With data extracted</div>
+        <div class="value">{{ "{:,}".format(total_reports) }}</div>
+        <div class="label">CbCR reports collected</div>
     </div>
     <div class="stat-card">
         <div class="value">{{ "{:,}".format(total_data_rows) }}</div>
@@ -28,63 +28,101 @@
 </div>
 
 {% if misalignment_data %}
-<h2>Where is profit reported?</h2>
-<p class="subtitle">Comparing each jurisdiction's share of total revenue (a proxy for real economic activity) with its share of reported profit, across {{ "{:,}".format(misalignment_data['total_firms']) }} firms. Large gaps may indicate profit shifting.</p>
+<h2>Profit misalignment across jurisdictions</h2>
+<p class="subtitle">Comparing profitability metrics across jurisdictions for the top 20 jurisdictions by employee count, across {{ "{:,}".format(misalignment_data['total_firms']) }} firms. Unusually high profitability in low-tax jurisdictions may indicate profit shifting.</p>
+<div style="margin: 0.8rem 0;">
+    <button class="view-btn active" data-view="per_employee" onclick="switchView('per_employee', this)">Profit per employee</button>
+    <button class="view-btn" data-view="margin" onclick="switchView('margin', this)">Profit margin (%)</button>
+    <button class="view-btn" data-view="per_asset" onclick="switchView('per_asset', this)">Profit per tangible asset</button>
+</div>
+<style>
+.view-btn { padding: 0.4rem 0.9rem; border: 1px solid #ccc; border-radius: 4px; background: white; cursor: pointer; font-size: 0.85rem; margin-right: 0.3rem; }
+.view-btn.active { background: #2980b9; color: white; border-color: #2980b9; }
+</style>
 <div style="background: white; border-radius: 8px; padding: 1.2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin: 1rem 0;">
-    <canvas id="misalignmentChart" style="max-height: 420px;"></canvas>
+    <canvas id="misalignmentChart" style="max-height: 520px;"></canvas>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script>
 (function() {
     const data = {{ misalignment_data | tojson }};
     const ctx = document.getElementById('misalignmentChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: data.labels,
-            datasets: [
-                {
-                    label: 'Share of revenue',
-                    data: data.revenue_share,
-                    backgroundColor: 'rgba(41, 128, 185, 0.7)',
-                    borderColor: 'rgba(41, 128, 185, 1)',
-                    borderWidth: 1,
-                },
-                {
-                    label: 'Share of profit',
-                    data: data.profit_share,
-                    backgroundColor: 'rgba(231, 76, 60, 0.7)',
-                    borderColor: 'rgba(231, 76, 60, 1)',
-                    borderWidth: 1,
-                }
-            ]
+    const views = {
+        per_employee: {
+            values: data.profit_per_employee,
+            label: 'Profit before tax per employee',
+            xTitle: 'Profit / employee (reporting currency units)',
+            fmt: v => v.toLocaleString(undefined, {maximumFractionDigits: 0}),
         },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'top' },
-                tooltip: {
-                    callbacks: {
-                        afterBody: function(context) {
-                            const i = context[0].dataIndex;
-                            return 'Firms reporting: ' + data.n_firms[i];
+        margin: {
+            values: data.profit_margin,
+            label: 'Profit margin (profit / revenue)',
+            xTitle: 'Profit margin (%)',
+            fmt: v => v.toFixed(1) + '%',
+        },
+        per_asset: {
+            values: data.profit_per_asset,
+            label: 'Profit per unit of tangible assets',
+            xTitle: 'Profit / tangible assets ratio',
+            fmt: v => v != null ? v.toFixed(2) : 'N/A',
+        },
+    };
+    let chart = null;
+    function render(viewKey) {
+        const view = views[viewKey];
+        const vals = view.values;
+        const colors = vals.map(v => v > 0
+            ? (v > (vals.reduce((a,b)=>a+(b||0),0)/vals.filter(x=>x!=null).length * 2)
+                ? 'rgba(231, 76, 60, 0.7)' : 'rgba(41, 128, 185, 0.7)')
+            : 'rgba(149, 165, 166, 0.7)');
+        const borders = vals.map(v => v > 0
+            ? (v > (vals.reduce((a,b)=>a+(b||0),0)/vals.filter(x=>x!=null).length * 2)
+                ? 'rgba(231, 76, 60, 1)' : 'rgba(41, 128, 185, 1)')
+            : 'rgba(149, 165, 166, 1)');
+        if (chart) chart.destroy();
+        chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: view.label,
+                    data: vals,
+                    backgroundColor: colors,
+                    borderColor: borders,
+                    borderWidth: 1,
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return view.label + ': ' + view.fmt(context.raw);
+                            },
+                            afterBody: function(context) {
+                                const i = context[0].dataIndex;
+                                return 'Firms reporting: ' + data.n_firms[i];
+                            }
                         }
                     }
-                }
-            },
-            scales: {
-                x: {
-                    title: { display: true, text: 'Share of total (%)' },
-                    beginAtZero: true,
                 },
-                y: {
-                    ticks: { font: { size: 12 } }
+                scales: {
+                    x: { title: { display: true, text: view.xTitle } },
+                    y: { ticks: { font: { size: 11 } } }
                 }
             }
-        }
-    });
+        });
+    }
+    render('per_employee');
+    window.switchView = function(viewKey, btn) {
+        document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        render(viewKey);
+    };
 })();
 </script>
 {% endif %}
@@ -100,7 +138,7 @@
             {% set euto_reports.v = euto_reports.v + s['reports'] %}
         {% else %}
     <tr>
-        <td>{{ nice_source(s['source']) }}</td>
+        <td>{% if source_url(s['source']) %}<a href="{{ source_url(s['source']) }}" target="_blank">{{ nice_source(s['source']) }}</a>{% else %}{{ nice_source(s['source']) }}{% endif %}</td>
         <td>{{ "{:,}".format(s['firms']) }}</td>
         <td>{{ "{:,}".format(s['reports']) }}</td>
     </tr>
@@ -119,7 +157,7 @@
 
 <h3 style="color: #27ae60; font-size: 1rem; margin-top: 1rem;">Countries with report data</h3>
 <table>
-    <tr><th>Country</th><th>In-Scope Firms</th><th>Report Found</th><th>Data Extracted</th><th>Coverage</th></tr>
+    <tr><th>Country</th><th>In-Scope Firms</th><th>With CbCR Data</th><th></th><th>Coverage</th></tr>
     {% for c in countries_with %}
     {% set pct = (c['with_report'] / c['n'] * 100) if c['n'] > 0 else 0 %}
     {% set bar_total = (c['n'] / countries_with[0]['n'] * 250)|int %}

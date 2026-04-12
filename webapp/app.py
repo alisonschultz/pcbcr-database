@@ -43,6 +43,19 @@ SOURCE_LABELS = {
     'taxplorer': 'EU Tax Observatory (TAXPLORER)',
     'tax_observatory_banks': 'EU Tax Observatory (banks)',
     'user_submission': 'User submission',
+    'fair_tax_foundation': 'Fair Tax Foundation',
+    'eba_pillar3': 'EBA Pillar 3 Disclosures',
+    'cro_ireland': 'CRO Ireland',
+}
+
+SOURCE_URLS = {
+    'company_website': None,
+    'taxplorer': 'https://tax-observatory.eu',
+    'tax_observatory_banks': 'https://tax-observatory.eu',
+    'fair_tax_foundation': 'https://fairtaxmark.net/resources/public-country-by-country-reporting-why-and-how/',
+    'eba_pillar3': 'https://www.eba.europa.eu/risk-analysis-and-data/eu-wide-transparency-exercise',
+    'cro_ireland': 'https://cro.ie/publications/document-library/',
+    'user_submission': None,
 }
 
 
@@ -70,6 +83,11 @@ def nice_source(raw):
     return SOURCE_LABELS.get(raw, raw.replace('_', ' ').title())
 
 
+def source_url(raw):
+    """Return the URL for a data source, or None."""
+    return SOURCE_URLS.get(raw)
+
+
 def regime_badge_class(raw):
     """Return the CSS badge class for a regime."""
     if 'VIA_SUBSIDIARY' in raw or 'CANDIDATE' in raw:
@@ -86,7 +104,8 @@ def regime_badge_class(raw):
 @app.context_processor
 def inject_helpers():
     return dict(nice_regime=nice_regime, nice_source=nice_source,
-                regime_url=regime_url, regime_badge_class=regime_badge_class)
+                regime_url=regime_url, regime_badge_class=regime_badge_class,
+                source_url=source_url)
 
 
 def get_db():
@@ -101,22 +120,22 @@ def get_db():
 def index():
     db = get_db()
 
-    # Key stats
+    # Key stats — only count firms/reports that actually contain CbCR data
     total_firms = db.execute("SELECT COUNT(*) FROM firms").fetchone()[0]
     in_scope = db.execute("""
         SELECT COUNT(*) FROM firms
         WHERE regime_classification NOT LIKE '%OUT_OF_SCOPE%'
           AND regime_classification NOT LIKE '%CANDIDATE%'
     """).fetchone()[0]
-    with_reports = db.execute("SELECT COUNT(DISTINCT bvd_id) FROM reports").fetchone()[0]
     with_data = db.execute("SELECT COUNT(DISTINCT bvd_id) FROM reports WHERE data_extracted = 1").fetchone()[0]
+    total_reports = db.execute("SELECT COUNT(*) FROM reports WHERE data_extracted = 1").fetchone()[0]
     total_data_rows = db.execute("SELECT COUNT(*) FROM report_data").fetchone()[0]
-    data_gap = in_scope - with_reports
+    data_gap = in_scope - with_data
 
-    # Reports by source
+    # Reports by source — only those with extracted CbCR data
     sources = db.execute("""
         SELECT source, COUNT(DISTINCT bvd_id) as firms, COUNT(*) as reports
-        FROM reports GROUP BY source
+        FROM reports WHERE data_extracted = 1 GROUP BY source
     """).fetchall()
 
     # In-scope by regime
@@ -129,10 +148,10 @@ def index():
         ORDER BY n DESC
     """).fetchall()
 
-    # Countries by in-scope firms, split by whether they have any reports
+    # Countries by in-scope firms — only count reports with extracted CbCR data
     countries_with = db.execute("""
         SELECT f.country_iso, COUNT(*) as n,
-               SUM(CASE WHEN f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports) THEN 1 ELSE 0 END) as with_report,
+               SUM(CASE WHEN f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports WHERE data_extracted = 1) THEN 1 ELSE 0 END) as with_report,
                SUM(CASE WHEN f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports WHERE data_extracted = 1) THEN 1 ELSE 0 END) as with_data
         FROM firms f
         WHERE f.regime_classification NOT LIKE '%OUT_OF_SCOPE%'
@@ -143,7 +162,7 @@ def index():
     """).fetchall()
     countries_without = db.execute("""
         SELECT f.country_iso, COUNT(*) as n,
-               SUM(CASE WHEN f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports) THEN 1 ELSE 0 END) as with_report
+               SUM(CASE WHEN f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports WHERE data_extracted = 1) THEN 1 ELSE 0 END) as with_report
         FROM firms f
         WHERE f.regime_classification NOT LIKE '%OUT_OF_SCOPE%'
           AND f.regime_classification NOT LIKE '%CANDIDATE%'
@@ -221,7 +240,6 @@ def index():
     misalignment_data = None
     try:
         df_unified = pd.read_csv(UNIFIED_CSV)
-        df_m = df_unified[df_unified['total_revenues'].notna() & df_unified['profit_before_tax'].notna()].copy()
 
         # Standardize jurisdiction names
         jur_map = {
@@ -245,6 +263,13 @@ def index():
                     'north america','sub-saharan africa','other europe','other asia',
                     'other americas','other africa'}
 
+        # Filter to rows with profit and employees
+        df_m = df_unified[
+            df_unified['profit_before_tax'].notna() &
+            df_unified['employees'].notna() &
+            (df_unified['employees'] > 0)
+        ].copy()
+
         df_m['jur_clean'] = df_m['jurisdiction_name'].apply(
             lambda x: jur_map.get(str(x).strip().lower(), str(x).strip()) if pd.notna(x) else None)
         df_m = df_m[df_m['jur_clean'].notna()]
@@ -253,26 +278,31 @@ def index():
         agg = df_m.groupby('jur_clean').agg(
             revenue=('total_revenues', 'sum'),
             profit=('profit_before_tax', 'sum'),
+            employees=('employees', 'sum'),
+            tangible_assets=('tangible_assets', 'sum'),
             n_firms=('company_name', 'nunique')
         ).reset_index()
         agg = agg[agg['n_firms'] >= 5]
+        agg = agg[agg['employees'] > 0]
 
-        total_rev = agg['revenue'].sum()
-        total_profit = agg[agg['profit'] > 0]['profit'].sum()
+        # Profitability per employee (primary view)
+        agg['profit_per_employee'] = (agg['profit'] / agg['employees']).round(0)
+        # Profit margin (profit / revenue)
+        agg['profit_margin'] = agg.apply(
+            lambda r: round(r['profit'] / r['revenue'] * 100, 1) if r['revenue'] > 0 else None, axis=1)
+        # Profitability per asset
+        agg['profit_per_asset'] = agg.apply(
+            lambda r: round(r['profit'] / r['tangible_assets'], 2) if r['tangible_assets'] > 0 else None, axis=1)
 
-        if total_rev > 0 and total_profit > 0:
-            agg['revenue_share'] = (agg['revenue'] / total_rev * 100).round(1)
-            agg['profit_share'] = (agg['profit'] / total_profit * 100).round(1)
-            agg['misalignment'] = agg['profit_share'] - agg['revenue_share']
-
-            top = agg.nlargest(15, 'revenue')
-            misalignment_data = {
-                'labels': top['jur_clean'].tolist(),
-                'revenue_share': top['revenue_share'].tolist(),
-                'profit_share': top['profit_share'].tolist(),
-                'n_firms': top['n_firms'].tolist(),
-                'total_firms': int(df_m['company_name'].nunique()),
-            }
+        top = agg.nlargest(20, 'employees')
+        misalignment_data = {
+            'labels': top['jur_clean'].tolist(),
+            'profit_per_employee': top['profit_per_employee'].tolist(),
+            'profit_margin': top['profit_margin'].tolist(),
+            'profit_per_asset': [v if pd.notna(v) else None for v in top['profit_per_asset']],
+            'n_firms': top['n_firms'].tolist(),
+            'total_firms': int(df_m['company_name'].nunique()),
+        }
     except Exception:
         pass
 
@@ -280,9 +310,9 @@ def index():
     return render_template('index.html',
                            total_firms=total_firms,
                            in_scope=in_scope,
-                           with_reports=with_reports,
                            with_data=with_data,
                            data_gap=data_gap,
+                           total_reports=total_reports,
                            total_data_rows=total_data_rows,
                            sources=sources,
                            regimes=regimes,
@@ -487,11 +517,11 @@ def api_stats():
     stats = {
         'total_firms': db.execute("SELECT COUNT(*) FROM firms").fetchone()[0],
         'in_scope': db.execute("SELECT COUNT(*) FROM firms WHERE regime_classification NOT LIKE '%OUT_OF_SCOPE%' AND regime_classification NOT LIKE '%CANDIDATE%'").fetchone()[0],
-        'with_reports': db.execute("SELECT COUNT(DISTINCT bvd_id) FROM reports").fetchone()[0],
-        'total_reports': db.execute("SELECT COUNT(*) FROM reports").fetchone()[0],
+        'with_data': db.execute("SELECT COUNT(DISTINCT bvd_id) FROM reports WHERE data_extracted = 1").fetchone()[0],
+        'total_reports': db.execute("SELECT COUNT(*) FROM reports WHERE data_extracted = 1").fetchone()[0],
         'total_data_rows': db.execute("SELECT COUNT(*) FROM report_data").fetchone()[0],
     }
-    stats['data_gap'] = stats['in_scope'] - stats['with_reports']
+    stats['data_gap'] = stats['in_scope'] - stats['with_data']
     db.close()
     return jsonify(stats)
 
