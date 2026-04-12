@@ -287,8 +287,8 @@ def index():
 
         # Profitability per employee (primary view)
         agg['profit_per_employee'] = (agg['profit'] / agg['employees']).round(0)
-        # Profit margin (profit / revenue)
-        agg['profit_margin'] = agg.apply(
+        # Profit per revenue
+        agg['profit_per_revenue'] = agg.apply(
             lambda r: round(r['profit'] / r['revenue'] * 100, 1) if r['revenue'] > 0 else None, axis=1)
         # Profitability per asset
         agg['profit_per_asset'] = agg.apply(
@@ -298,7 +298,7 @@ def index():
         misalignment_data = {
             'labels': top['jur_clean'].tolist(),
             'profit_per_employee': top['profit_per_employee'].tolist(),
-            'profit_margin': top['profit_margin'].tolist(),
+            'profit_per_revenue': top['profit_per_revenue'].tolist(),
             'profit_per_asset': [v if pd.notna(v) else None for v in top['profit_per_asset']],
             'n_firms': top['n_firms'].tolist(),
             'total_firms': int(df_m['company_name'].nunique()),

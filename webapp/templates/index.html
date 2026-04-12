@@ -32,7 +32,7 @@
 <p class="subtitle">Comparing profitability metrics across jurisdictions for the top 20 jurisdictions by employee count, across {{ "{:,}".format(misalignment_data['total_firms']) }} firms. Unusually high profitability in low-tax jurisdictions may indicate profit shifting.</p>
 <div style="margin: 0.8rem 0;">
     <button class="view-btn active" data-view="per_employee" onclick="switchView('per_employee', this)">Profit per employee</button>
-    <button class="view-btn" data-view="margin" onclick="switchView('margin', this)">Profit margin (%)</button>
+    <button class="view-btn" data-view="per_revenue" onclick="switchView('per_revenue', this)">Profit per revenue</button>
     <button class="view-btn" data-view="per_asset" onclick="switchView('per_asset', this)">Profit per tangible asset</button>
 </div>
 <style>
@@ -50,43 +50,49 @@
     const views = {
         per_employee: {
             values: data.profit_per_employee,
-            label: 'Profit before tax per employee',
-            xTitle: 'Profit / employee (reporting currency units)',
+            label: 'Profit per employee',
+            yTitle: 'Profit / employee (reporting currency units)',
             fmt: v => v.toLocaleString(undefined, {maximumFractionDigits: 0}),
         },
-        margin: {
-            values: data.profit_margin,
-            label: 'Profit margin (profit / revenue)',
-            xTitle: 'Profit margin (%)',
+        per_revenue: {
+            values: data.profit_per_revenue,
+            label: 'Profit per revenue',
+            yTitle: 'Profit / revenue (%)',
             fmt: v => v.toFixed(1) + '%',
         },
         per_asset: {
             values: data.profit_per_asset,
-            label: 'Profit per unit of tangible assets',
-            xTitle: 'Profit / tangible assets ratio',
+            label: 'Profit per tangible asset',
+            yTitle: 'Profit / tangible assets ratio',
             fmt: v => v != null ? v.toFixed(2) : 'N/A',
         },
     };
     let chart = null;
     function render(viewKey) {
         const view = views[viewKey];
+        // Sort by value descending (largest at left)
+        const indices = data.labels.map((_, i) => i);
         const vals = view.values;
-        const colors = vals.map(v => v > 0
-            ? (v > (vals.reduce((a,b)=>a+(b||0),0)/vals.filter(x=>x!=null).length * 2)
-                ? 'rgba(231, 76, 60, 0.7)' : 'rgba(41, 128, 185, 0.7)')
+        indices.sort((a, b) => (vals[b] || -Infinity) - (vals[a] || -Infinity));
+        const sortedLabels = indices.map(i => data.labels[i]);
+        const sortedVals = indices.map(i => vals[i]);
+        const sortedFirms = indices.map(i => data.n_firms[i]);
+        const avg = sortedVals.filter(x => x != null && x > 0).reduce((a, b) => a + b, 0)
+                  / sortedVals.filter(x => x != null && x > 0).length;
+        const colors = sortedVals.map(v => v > 0
+            ? (v > avg * 2 ? 'rgba(231, 76, 60, 0.7)' : 'rgba(41, 128, 185, 0.7)')
             : 'rgba(149, 165, 166, 0.7)');
-        const borders = vals.map(v => v > 0
-            ? (v > (vals.reduce((a,b)=>a+(b||0),0)/vals.filter(x=>x!=null).length * 2)
-                ? 'rgba(231, 76, 60, 1)' : 'rgba(41, 128, 185, 1)')
+        const borders = sortedVals.map(v => v > 0
+            ? (v > avg * 2 ? 'rgba(231, 76, 60, 1)' : 'rgba(41, 128, 185, 1)')
             : 'rgba(149, 165, 166, 1)');
         if (chart) chart.destroy();
         chart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: data.labels,
+                labels: sortedLabels,
                 datasets: [{
                     label: view.label,
-                    data: vals,
+                    data: sortedVals,
                     backgroundColor: colors,
                     borderColor: borders,
                     borderWidth: 1,
@@ -105,13 +111,13 @@
                             },
                             afterBody: function(context) {
                                 const i = context[0].dataIndex;
-                                return 'Firms reporting: ' + data.n_firms[i];
+                                return 'Firms reporting: ' + sortedFirms[i];
                             }
                         }
                     }
                 },
                 scales: {
-                    y: { title: { display: true, text: view.xTitle } },
+                    y: { title: { display: true, text: view.yTitle } },
                     x: { ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 30 } }
                 }
             }
