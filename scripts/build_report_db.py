@@ -214,6 +214,92 @@ if os.path.exists(taxplorer_csv):
 else:
     print('\n  TAXPLORER data not yet available (manual download required)')
 
+# --- 5b. Import PDF-extracted CbCR data ---
+
+extracted_csv = os.path.join(os.path.dirname(OUTPUT_DIR), 'collected_reports', 'extracted_data.csv')
+if os.path.exists(extracted_csv):
+    print('\nImporting PDF-extracted CbCR data...')
+    df_pdf = pd.read_csv(extracted_csv)
+    print(f'  {len(df_pdf)} rows from {df_pdf["source_file"].nunique()} reports')
+
+    from datetime import date
+    today = date.today().isoformat()
+    pdf_reports_added = 0
+    pdf_data_rows_added = 0
+
+    for source_file in df_pdf['source_file'].unique():
+        file_data = df_pdf[df_pdf['source_file'] == source_file]
+        country_iso = file_data['country_iso'].iloc[0] if 'country_iso' in file_data.columns else None
+        company_name = file_data['company_name'].iloc[0] if 'company_name' in file_data.columns else None
+        year = file_data['report_year'].iloc[0] if 'report_year' in file_data.columns else None
+
+        if pd.isna(year) or not company_name:
+            continue
+        year_int = int(year)
+
+        # Try to match to a firm by name
+        cur.execute("SELECT bvd_id FROM firms WHERE company_name LIKE ? LIMIT 1",
+                    (f'%{company_name}%',))
+        match = cur.fetchone()
+        if match:
+            bvd_id = match[0]
+        else:
+            # Create placeholder firm entry
+            bvd_id = f'PDF_{company_name[:40].replace(" ", "_").upper()}'
+            try:
+                cur.execute("""
+                    INSERT OR IGNORE INTO firms (bvd_id, company_name, country_iso, regime_classification)
+                    VALUES (?, ?, ?, 'EU_2021_2101')
+                """, (bvd_id, company_name, country_iso))
+            except sqlite3.IntegrityError:
+                pass
+
+        # Insert report record
+        cur.execute("""
+            INSERT OR IGNORE INTO reports (bvd_id, report_year, source, report_format, collection_date, data_extracted)
+            VALUES (?, ?, 'company_website', 'pdf', ?, 1)
+        """, (bvd_id, year_int, today))
+        report_id = cur.lastrowid
+        if report_id == 0:
+            cur.execute("""
+                SELECT report_id FROM reports
+                WHERE bvd_id = ? AND report_year = ? AND source = 'company_website'
+            """, (bvd_id, year_int))
+            row = cur.fetchone()
+            if row:
+                report_id = row[0]
+            else:
+                continue
+        pdf_reports_added += 1
+
+        # Insert jurisdiction-level data
+        for _, jrow in file_data.iterrows():
+            jur = jrow.get('jurisdiction')
+            if pd.isna(jur):
+                continue
+            cur.execute("""
+                INSERT INTO report_data (
+                    report_id, jurisdiction_name,
+                    revenue, profit_before_tax, tax_paid, tax_accrued, employees, tangible_assets
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                report_id,
+                str(jur) if pd.notna(jur) else None,
+                float(jrow['revenue']) if pd.notna(jrow.get('revenue')) else None,
+                float(jrow['profit']) if pd.notna(jrow.get('profit')) else None,
+                float(jrow['tax_paid']) if pd.notna(jrow.get('tax_paid')) else None,
+                float(jrow['tax_accrued']) if pd.notna(jrow.get('tax_accrued')) else None,
+                float(jrow['employees']) if pd.notna(jrow.get('employees')) else None,
+                float(jrow['tangible_assets']) if pd.notna(jrow.get('tangible_assets')) else None,
+            ))
+            pdf_data_rows_added += 1
+
+    conn.commit()
+    print(f'  Added {pdf_reports_added} PDF report records')
+    print(f'  Added {pdf_data_rows_added} jurisdiction-level data rows')
+else:
+    print('\n  No PDF extracted data found')
+
 # --- 6. Summary statistics ---
 
 print('\n' + '='*60)

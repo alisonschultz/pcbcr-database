@@ -17,13 +17,36 @@ REPORTS_DIR = os.path.join(os.path.dirname(OUTPUT_DIR), 'collected_reports')
 
 # Header keywords that identify CbCR table columns
 HEADER_PATTERNS = {
-    'jurisdiction': ['country', 'jurisdiction', 'tax jurisdiction', 'territory', 'region', 'location'],
-    'revenue': ['revenue', 'turnover', 'income', 'net banking income', 'total revenue'],
-    'profit': ['profit', 'loss', 'earnings before tax', 'profit before tax', 'pre-tax', 'pbt'],
-    'tax_paid': ['tax paid', 'taxes paid', 'cash tax', 'income tax paid', 'corporate tax'],
-    'tax_accrued': ['tax accrued', 'current tax', 'tax charge', 'tax expense', 'income tax expense'],
-    'employees': ['employee', 'staff', 'headcount', 'fte', 'people', 'number of emp'],
-    'tangible_assets': ['tangible asset', 'fixed asset', 'property plant'],
+    'jurisdiction': ['country', 'jurisdiction', 'tax jurisdiction', 'territory', 'region', 'location',
+                     'jurisdic', 'land', 'pays', 'paese', 'staat',
+                     # Romanian
+                     'jurisdicție', 'jurisdictie', 'codul de'],
+    'revenue': ['revenue', 'turnover', 'income', 'net banking income', 'total revenue',
+                # Romanian
+                'venituri', 'cifra de afaceri',
+                # German/French/other
+                'umsatz', 'chiffre d\'affaires', 'ricavi', 'ingresos'],
+    'profit': ['profit', 'loss', 'earnings before tax', 'profit before tax', 'pre-tax', 'pbt',
+               # Romanian
+               'profit (pierdere)', 'profit brut', 'profit înainte',
+               # Other
+               'gewinn', 'bénéfice', 'utile', 'beneficio'],
+    'tax_paid': ['tax paid', 'taxes paid', 'cash tax', 'income tax paid', 'corporate tax',
+                 # Romanian
+                 'impozit pe profit plătit', 'impozit pe profit platit', 'plătit în numerar',
+                 'platit in numerar'],
+    'tax_accrued': ['tax accrued', 'current tax', 'tax charge', 'tax expense', 'income tax expense',
+                    # Romanian
+                    'impozit pe profit acumulat', 'impozit acumulat'],
+    'employees': ['employee', 'staff', 'headcount', 'fte', 'people', 'number of emp',
+                  # Romanian
+                  'salariați', 'salariati', 'angajați', 'angajati', 'număr de salariat',
+                  'numar de salariat',
+                  # Other
+                  'mitarbeiter', 'employés', 'dipendenti', 'empleados'],
+    'tangible_assets': ['tangible asset', 'fixed asset', 'property plant',
+                        # Romanian
+                        'active corporale', 'imobilizări corporale'],
 }
 
 # Known country/jurisdiction names for validation
@@ -38,6 +61,23 @@ COUNTRY_NAMES = {
     'morocco', 'pakistan', 'peru', 'qatar', 'saudi arabia', 'uae',
     'united arab emirates', 'azerbaijan', 'angola', 'mozambique', 'trinidad',
     'total', 'other', 'rest of world', 'unallocated', 'group total',
+    # Romanian names
+    'austria', 'belgia', 'cehia', 'cipru', 'croația', 'croatia', 'danemarca',
+    'franta', 'franța', 'germania', 'grecia', 'irlanda', 'letonia', 'lituania',
+    'luxemburg', 'malta', 'olanda', 'tarile de jos', 'țările de jos', 'polonia',
+    'portugalia', 'spania', 'suedia', 'ungaria', 'norvegia', 'elveția', 'elvetia',
+    'rusia', 'turcia', 'malaezia', 'iordania', 'botswana',
+    # EU non-cooperative list jurisdictions
+    'panama', 'costa rica', 'fiji', 'samoa', 'trinidad and tobago',
+    'trinidad și tobago', 'trinidad si tobago', 'hong kong',
+    'american samoa', 'anguilla', 'antigua and barbuda', 'guam', 'palau',
+    'vanuatu', 'seychelles',
+    # ISO codes as jurisdiction names
+    'at', 'be', 'bg', 'hr', 'cy', 'cz', 'dk', 'ee', 'fi', 'fr', 'de', 'gr',
+    'hu', 'ie', 'it', 'lv', 'lt', 'lu', 'mt', 'nl', 'pl', 'pt', 'ro', 'sk',
+    'si', 'es', 'se', 'gb', 'us', 'ch', 'no', 'jp', 'kr', 'cn', 'in', 'br',
+    'au', 'ca', 'mx', 'za', 'sg', 'hk', 'tw', 'my', 'th', 'id', 'ph', 'vn',
+    'tr', 'ru', 'pa', 'cr', 'tt',
 }
 
 
