@@ -263,12 +263,8 @@ def index():
                     'north america','sub-saharan africa','other europe','other asia',
                     'other americas','other africa'}
 
-        # Filter to rows with profit and employees
-        df_m = df_unified[
-            df_unified['profit_before_tax'].notna() &
-            df_unified['employees'].notna() &
-            (df_unified['employees'] > 0)
-        ].copy()
+        # Use all rows with profit data (don't require employees upfront)
+        df_m = df_unified[df_unified['profit_before_tax'].notna()].copy()
 
         df_m['jur_clean'] = df_m['jurisdiction_name'].apply(
             lambda x: jur_map.get(str(x).strip().lower(), str(x).strip()) if pd.notna(x) else None)
@@ -280,13 +276,13 @@ def index():
             profit=('profit_before_tax', 'sum'),
             employees=('employees', 'sum'),
             tangible_assets=('tangible_assets', 'sum'),
-            n_firms=('company_name', 'nunique')
+            n_firms=('company_name', 'nunique'),
         ).reset_index()
-        agg = agg[agg['n_firms'] >= 5]
-        agg = agg[agg['employees'] > 0]
+        agg = agg[agg['n_firms'] >= 3]
 
-        # Profitability per employee (primary view)
-        agg['profit_per_employee'] = (agg['profit'] / agg['employees']).round(0)
+        # Profitability per employee (only where employees > 0)
+        agg['profit_per_employee'] = agg.apply(
+            lambda r: round(r['profit'] / r['employees'], 0) if r['employees'] > 0 else None, axis=1)
         # Profit per revenue
         agg['profit_per_revenue'] = agg.apply(
             lambda r: round(r['profit'] / r['revenue'] * 100, 1) if r['revenue'] > 0 else None, axis=1)
@@ -294,7 +290,7 @@ def index():
         agg['profit_per_asset'] = agg.apply(
             lambda r: round(r['profit'] / r['tangible_assets'], 2) if r['tangible_assets'] > 0 else None, axis=1)
 
-        top = agg.nlargest(20, 'employees')
+        top = agg.nlargest(20, 'n_firms')
         misalignment_data = {
             'labels': top['jur_clean'].tolist(),
             'profit_per_employee': top['profit_per_employee'].tolist(),

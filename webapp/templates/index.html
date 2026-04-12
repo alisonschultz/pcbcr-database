@@ -28,8 +28,8 @@
 </div>
 
 {% if misalignment_data %}
-<h2>Profit misalignment across jurisdictions</h2>
-<p class="subtitle">Comparing profitability metrics across jurisdictions for the top 20 jurisdictions by employee count, across {{ "{:,}".format(misalignment_data['total_firms']) }} firms. Unusually high profitability in low-tax jurisdictions may indicate profit shifting.</p>
+<h2>Profit misalignment in public reports</h2>
+<p class="subtitle">Comparing profitability metrics across jurisdictions for the top 20 jurisdictions by number of reporting firms, across {{ "{:,}".format(misalignment_data['total_firms']) }} firms. Unusually high profitability in low-tax jurisdictions may indicate profit shifting.</p>
 <div style="margin: 0.8rem 0;">
     <button class="view-btn active" data-view="per_employee" onclick="switchView('per_employee', this)">Profit per employee</button>
     <button class="view-btn" data-view="per_revenue" onclick="switchView('per_revenue', this)">Profit per revenue</button>
@@ -163,17 +163,15 @@
 
 <h3 style="color: #27ae60; font-size: 1rem; margin-top: 1rem;">Countries with report data</h3>
 <table>
-    <tr><th>Country</th><th>In-Scope Firms</th><th>With CbCR Data</th><th></th><th>Coverage</th></tr>
+    <tr><th>Country</th><th>In-Scope Firms</th><th>With CbCR Data</th><th>Coverage</th></tr>
     {% for c in countries_with %}
     {% set pct = (c['with_report'] / c['n'] * 100) if c['n'] > 0 else 0 %}
     {% set bar_total = (c['n'] / countries_with[0]['n'] * 250)|int %}
     {% set bar_found = (c['with_report'] / c['n'] * bar_total)|int %}
-    {% set bar_data = (c['with_data'] / c['n'] * bar_total)|int %}
     <tr>
         <td><a href="/companies?country={{ c['country_iso'] }}">{{ c['country_iso'] }}</a></td>
         <td class="num">{{ "{:,}".format(c['n']) }}</td>
         <td class="num" style="color: #27ae60;">{{ "{:,}".format(c['with_report']) }}</td>
-        <td class="num" style="color: #2980b9;">{{ "{:,}".format(c['with_data']) }}</td>
         <td>
             <div class="progress-bar" style="width: {{ bar_total }}px;" title="{{ "{:.0f}".format(pct) }}% with report">
                 <div class="found" style="width: {{ bar_found }}px;"></div>
