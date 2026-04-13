@@ -349,9 +349,9 @@ def companies():
         where.append("f.country_iso = ?")
         params.append(country)
     if has_report == 'yes':
-        where.append("f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports)")
+        where.append("f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports WHERE data_extracted = 1)")
     elif has_report == 'no':
-        where.append("f.bvd_id NOT IN (SELECT DISTINCT bvd_id FROM reports)")
+        where.append("f.bvd_id NOT IN (SELECT DISTINCT bvd_id FROM reports WHERE data_extracted = 1)")
 
     where_sql = ' AND '.join(where)
 
@@ -360,11 +360,11 @@ def companies():
     firms = db.execute(f"""
         SELECT f.bvd_id, f.company_name, f.country_iso, f.regime_classification,
                f.bvd_sector, f.website,
-               (SELECT COUNT(*) FROM reports r WHERE r.bvd_id = f.bvd_id) as report_count,
-               (SELECT GROUP_CONCAT(DISTINCT report_year ORDER BY report_year) FROM reports r WHERE r.bvd_id = f.bvd_id AND r.report_year > 0) as report_years
+               (SELECT COUNT(*) FROM reports r WHERE r.bvd_id = f.bvd_id AND r.data_extracted = 1) as report_count,
+               (SELECT GROUP_CONCAT(DISTINCT report_year ORDER BY report_year) FROM reports r WHERE r.bvd_id = f.bvd_id AND r.data_extracted = 1 AND r.report_year > 0) as report_years
         FROM firms f
         WHERE {where_sql}
-        ORDER BY (SELECT COUNT(*) FROM reports r WHERE r.bvd_id = f.bvd_id) DESC, f.company_name
+        ORDER BY (SELECT COUNT(*) FROM reports r WHERE r.bvd_id = f.bvd_id AND r.data_extracted = 1) DESC, f.company_name
         LIMIT ? OFFSET ?
     """, params + [per_page, (page - 1) * per_page]).fetchall()
 
@@ -430,8 +430,8 @@ def data_gap():
     gap_with_data = db.execute("""
         SELECT f.country_iso,
                COUNT(*) as total_in_scope,
-               SUM(CASE WHEN f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports) THEN 1 ELSE 0 END) as with_report,
-               SUM(CASE WHEN f.bvd_id NOT IN (SELECT DISTINCT bvd_id FROM reports) THEN 1 ELSE 0 END) as without_report
+               SUM(CASE WHEN f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports WHERE data_extracted = 1) THEN 1 ELSE 0 END) as with_report,
+               SUM(CASE WHEN f.bvd_id NOT IN (SELECT DISTINCT bvd_id FROM reports WHERE data_extracted = 1) THEN 1 ELSE 0 END) as without_report
         FROM firms f
         WHERE f.regime_classification NOT LIKE '%OUT_OF_SCOPE%'
           AND f.regime_classification NOT LIKE '%CANDIDATE%'
@@ -448,7 +448,7 @@ def data_gap():
         WHERE f.regime_classification NOT LIKE '%OUT_OF_SCOPE%'
           AND f.regime_classification NOT LIKE '%CANDIDATE%'
         GROUP BY f.country_iso
-        HAVING SUM(CASE WHEN f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports) THEN 1 ELSE 0 END) = 0
+        HAVING SUM(CASE WHEN f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports WHERE data_extracted = 1) THEN 1 ELSE 0 END) = 0
         ORDER BY total_in_scope DESC
     """).fetchall()
 
@@ -456,7 +456,7 @@ def data_gap():
     gap_by_regime = db.execute("""
         SELECT f.regime_classification,
                COUNT(*) as total,
-               SUM(CASE WHEN f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports) THEN 1 ELSE 0 END) as with_report
+               SUM(CASE WHEN f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports WHERE data_extracted = 1) THEN 1 ELSE 0 END) as with_report
         FROM firms f
         WHERE f.regime_classification NOT LIKE '%OUT_OF_SCOPE%'
           AND f.regime_classification NOT LIKE '%CANDIDATE%'
@@ -622,19 +622,19 @@ def download_companies():
         where.append("f.country_iso = ?")
         params.append(country)
     if has_report == 'yes':
-        where.append("f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports)")
+        where.append("f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports WHERE data_extracted = 1)")
     elif has_report == 'no':
-        where.append("f.bvd_id NOT IN (SELECT DISTINCT bvd_id FROM reports)")
+        where.append("f.bvd_id NOT IN (SELECT DISTINCT bvd_id FROM reports WHERE data_extracted = 1)")
 
     where_sql = ' AND '.join(where)
     rows = db.execute(f"""
         SELECT f.bvd_id, f.company_name, f.country_iso, f.regime_classification,
                f.bvd_sector, f.website,
-               (SELECT COUNT(*) FROM reports r WHERE r.bvd_id = f.bvd_id) as report_count,
-               (SELECT GROUP_CONCAT(DISTINCT report_year ORDER BY report_year) FROM reports r WHERE r.bvd_id = f.bvd_id AND r.report_year > 0) as report_years
+               (SELECT COUNT(*) FROM reports r WHERE r.bvd_id = f.bvd_id AND r.data_extracted = 1) as report_count,
+               (SELECT GROUP_CONCAT(DISTINCT report_year ORDER BY report_year) FROM reports r WHERE r.bvd_id = f.bvd_id AND r.data_extracted = 1 AND r.report_year > 0) as report_years
         FROM firms f
         WHERE {where_sql}
-        ORDER BY (SELECT COUNT(*) FROM reports r WHERE r.bvd_id = f.bvd_id) DESC, f.company_name
+        ORDER BY (SELECT COUNT(*) FROM reports r WHERE r.bvd_id = f.bvd_id AND r.data_extracted = 1) DESC, f.company_name
     """, params).fetchall()
     db.close()
     return rows_to_csv_response(rows, 'companies_list.csv')
@@ -646,8 +646,8 @@ def download_data_gap():
     rows = db.execute("""
         SELECT f.country_iso,
                COUNT(*) as total_in_scope,
-               SUM(CASE WHEN f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports) THEN 1 ELSE 0 END) as with_report,
-               SUM(CASE WHEN f.bvd_id NOT IN (SELECT DISTINCT bvd_id FROM reports) THEN 1 ELSE 0 END) as without_report
+               SUM(CASE WHEN f.bvd_id IN (SELECT DISTINCT bvd_id FROM reports WHERE data_extracted = 1) THEN 1 ELSE 0 END) as with_report,
+               SUM(CASE WHEN f.bvd_id NOT IN (SELECT DISTINCT bvd_id FROM reports WHERE data_extracted = 1) THEN 1 ELSE 0 END) as without_report
         FROM firms f
         WHERE f.regime_classification NOT LIKE '%OUT_OF_SCOPE%'
           AND f.regime_classification NOT LIKE '%CANDIDATE%'
