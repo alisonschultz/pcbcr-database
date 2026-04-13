@@ -263,8 +263,15 @@ def index():
                     'north america','sub-saharan africa','other europe','other asia',
                     'other americas','other africa'}
 
-        # Use all rows with profit data (don't require employees upfront)
+        # Use all rows with profit data, but only the LATEST year per company
+        # to avoid inflating jurisdictions with multi-year data
         df_m = df_unified[df_unified['profit_before_tax'].notna()].copy()
+
+        # Keep only the latest report year per company
+        latest_year = df_m.groupby('company_name')['report_year'].max().reset_index()
+        latest_year.columns = ['company_name', 'latest_year']
+        df_m = df_m.merge(latest_year, on='company_name')
+        df_m = df_m[df_m['report_year'] == df_m['latest_year']]
 
         df_m['jur_clean'] = df_m['jurisdiction_name'].apply(
             lambda x: jur_map.get(str(x).strip().lower(), str(x).strip()) if pd.notna(x) else None)
