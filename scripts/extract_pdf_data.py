@@ -166,23 +166,32 @@ def find_cbcr_tables(pdf_path):
     except Exception:
         pass  # If fitz fails, continue with pdfplumber
 
-    results = []
+    candidates = []  # List of (score, rows) for each candidate table
     try:
         with pdfplumber.open(pdf_path) as pdf:
             for page_num, page in enumerate(pdf.pages):
                 tables = page.extract_tables()
                 for table_idx, table in enumerate(tables):
-                    if len(table) < 3:  # Need at least header + 2 data rows
+                    if len(table) < 3:
                         continue
 
-                    # Try to identify CbCR table
                     cbcr_data = try_parse_cbcr_table(table, page_num + 1, table_idx + 1)
                     if cbcr_data:
-                        results.extend(cbcr_data)
+                        # Score: prefer tables with more country rows and more financial fields
+                        n_countries = len([r for r in cbcr_data if r.get('jurisdiction') and looks_like_country(r['jurisdiction'])])
+                        n_fields = sum(1 for r in cbcr_data for f in ['revenue','profit','tax_paid','employees']
+                                      if r.get(f) is not None)
+                        score = n_countries * 10 + n_fields
+                        candidates.append((score, cbcr_data))
     except Exception as e:
         print(f'  Error reading {os.path.basename(pdf_path)}: {e}')
 
-    return results
+    if not candidates:
+        return []
+
+    # Return only the single best table
+    candidates.sort(key=lambda x: -x[0])
+    return candidates[0][1]
 
 
 def try_parse_cbcr_table(table, page_num, table_idx):
