@@ -94,22 +94,14 @@ def classify_column(header_text):
 
 
 def looks_like_country(text):
-    """Check if text looks like a country/jurisdiction name."""
+    """Check if text looks like a country/jurisdiction name. Strict matching only."""
     if not text:
         return False
     t = str(text).lower().strip()
     if len(t) < 2 or len(t) > 40:
         return False
-    if t in COUNTRY_NAMES:
-        return True
-    # Check partial matches
-    for c in COUNTRY_NAMES:
-        if c in t or t in c:
-            return True
-    # Country-like: starts with uppercase, mostly letters
-    if re.match(r'^[A-Z][a-zA-Z\s\-\'\.]+$', str(text).strip()):
-        return True
-    return False
+    # Exact match against known names only — no partial matching
+    return t in COUNTRY_NAMES
 
 
 def parse_number(text):
@@ -216,12 +208,19 @@ def try_parse_cbcr_table(table, page_num, table_idx):
                 col_map[col_idx] = 'jurisdiction'
                 break
 
-    # Need at least jurisdiction + one financial column
+    # MUST have a jurisdiction column with actual country names + at least one financial column
     has_jurisdiction = 'jurisdiction' in col_map.values()
     has_financial = any(v in ('revenue', 'profit', 'tax_paid', 'tax_accrued', 'employees')
                        for v in col_map.values())
 
-    if not has_financial:
+    if not has_jurisdiction or not has_financial:
+        return None
+
+    # Validate: check that at least 3 data rows have recognizable country names
+    jur_col = [k for k, v in col_map.items() if v == 'jurisdiction'][0]
+    country_hits = sum(1 for row in table[header_row_idx+1:min(header_row_idx+10, len(table))]
+                       if len(row) > jur_col and looks_like_country(row[jur_col]))
+    if country_hits < 2:
         return None
 
     # Extract data rows
