@@ -135,10 +135,38 @@ def parse_number(text):
         return None
 
 
-def find_cbcr_tables(pdf_path):
-    """Find and extract CbCR tables from a PDF."""
-    results = []
+CBCR_KEYWORDS = [
+    'country-by-country', 'country by country', 'cbcr', 'cbc report',
+    'income tax information', 'tax jurisdiction',
+    'profit before tax', 'tax paid', 'tax accrued',
+    'raport privind informatiile referitoare la impozitul pe profit',
+    'impozit pe profit', 'raportare pe',
+    'informe sobre el impuesto', 'informe país por país',
+    'public cbcr', 'public cbyc',
+    'eu directive 2021/2101', 'directive 2013/34',
+    'tax transparency report', 'tax contribution report',
+]
 
+
+def find_cbcr_tables(pdf_path):
+    """Find and extract CbCR tables from a PDF.
+    First verifies the PDF contains CbCR content to avoid extracting
+    ESG/sustainability tables with country breakdowns.
+    """
+    import fitz as pymupdf
+
+    # Pre-filter: check if the PDF actually contains CbCR content
+    try:
+        doc = pymupdf.open(pdf_path)
+        # Check first 10 pages for CbCR keywords
+        sample_text = ' '.join(doc[i].get_text().lower() for i in range(min(10, len(doc))))
+        doc.close()
+        if not any(kw in sample_text for kw in CBCR_KEYWORDS):
+            return []  # Not a CbCR report
+    except Exception:
+        pass  # If fitz fails, continue with pdfplumber
+
+    results = []
     try:
         with pdfplumber.open(pdf_path) as pdf:
             for page_num, page in enumerate(pdf.pages):

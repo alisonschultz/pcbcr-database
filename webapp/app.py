@@ -388,11 +388,18 @@ def companies():
     firms = db.execute(f"""
         SELECT f.bvd_id, f.company_name, f.country_iso, f.regime_classification,
                f.bvd_sector, f.website,
-               (SELECT COUNT(*) FROM reports r WHERE r.bvd_id = f.bvd_id AND r.data_extracted = 1) as report_count,
-               (SELECT GROUP_CONCAT(DISTINCT report_year ORDER BY report_year) FROM reports r WHERE r.bvd_id = f.bvd_id AND r.data_extracted = 1 AND r.report_year > 0) as report_years
+               COALESCE(rc.report_count, 0) as report_count,
+               rc.report_years
         FROM firms f
+        LEFT JOIN (
+            SELECT bvd_id,
+                   COUNT(*) as report_count,
+                   GROUP_CONCAT(DISTINCT report_year ORDER BY report_year) as report_years
+            FROM reports WHERE data_extracted = 1 AND report_year > 0
+            GROUP BY bvd_id
+        ) rc ON f.bvd_id = rc.bvd_id
         WHERE {where_sql}
-        ORDER BY (SELECT COUNT(*) FROM reports r WHERE r.bvd_id = f.bvd_id AND r.data_extracted = 1) DESC, f.company_name
+        ORDER BY COALESCE(rc.report_count, 0) DESC, f.company_name
         LIMIT ? OFFSET ?
     """, params + [per_page, (page - 1) * per_page]).fetchall()
 
