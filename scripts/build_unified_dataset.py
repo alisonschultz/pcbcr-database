@@ -150,13 +150,29 @@ else:
     print('  No PDF extracted data found')
     df_pdf_unified = pd.DataFrame(columns=UNIFIED_COLUMNS)
 
-# --- 4. Combine ---
+# --- 4. Combine and deduplicate ---
 
 print('\n=== Combining datasets ===')
 df_unified = pd.concat([df_tax_unified, df_banks_unified, df_pdf_unified], ignore_index=True)
-print(f'  Total: {len(df_unified)} rows')
+print(f'  Before dedup: {len(df_unified)} rows')
+
+# Deduplicate: keep one row per company-year-jurisdiction, preferring the most complete
+# Count non-null financial fields per row to rank completeness
+financial_cols = ['total_revenues', 'profit_before_tax', 'tax_paid', 'tax_accrued', 'employees', 'tangible_assets']
+df_unified['_completeness'] = df_unified[financial_cols].notna().sum(axis=1)
+# Prefer TAXPLORER/banks over PDF (more reliable), then most complete row
+source_priority = {'taxplorer': 0, 'tax_observatory_banks': 1, 'company_website': 2}
+df_unified['_source_rank'] = df_unified['source'].map(source_priority).fillna(3)
+df_unified = df_unified.sort_values(['_source_rank', '_completeness'], ascending=[True, False])
+df_unified = df_unified.drop_duplicates(
+    subset=['company_name', 'report_year', 'jurisdiction_name'],
+    keep='first'
+)
+df_unified = df_unified.drop(columns=['_completeness', '_source_rank'])
+
+print(f'  After dedup: {len(df_unified)} rows')
 print(f'  Companies: {df_unified["company_name"].nunique()}')
-print(f'  Years: {sorted(df_unified["report_year"].unique())}')
+print(f'  Years: {sorted(df_unified["report_year"].dropna().unique())}')
 
 # --- 5. Match company names to master firm list ---
 
