@@ -213,42 +213,6 @@
     <a href="https://eur-lex.europa.eu/eli/dir/2013/36/oj" target="_blank">CRD IV (Directive 2013/36/EU)</a>
 </p>
 
-{% if report_stats %}
-<h2>Data at a Glance</h2>
-<p class="subtitle">Summary across {{ "{:,}".format(report_stats['report_count']) }} firm-year reports covering {{ report_stats['year_min'] }}–{{ report_stats['year_max'] }}, spanning {{ report_stats['jurisdictions'] }} jurisdictions.</p>
-<table>
-    <tr>
-        <th></th>
-        <th>Smallest firm</th>
-        <th>Median firm</th>
-        <th>Largest firm</th>
-    </tr>
-    <tr>
-        <td><strong>Revenue</strong></td>
-        <td class="num">{{ report_stats['rev_min'] }}</td>
-        <td class="num">{{ report_stats['rev_median'] }}</td>
-        <td class="num">{{ report_stats['rev_max'] }}</td>
-    </tr>
-    <tr>
-        <td><strong>Profit before tax</strong></td>
-        <td class="num">{{ report_stats['pbt_min'] }}</td>
-        <td class="num">{{ report_stats['pbt_median'] }}</td>
-        <td class="num">{{ report_stats['pbt_max'] }}</td>
-    </tr>
-    <tr>
-        <td><strong>Tax paid</strong></td>
-        <td class="num">{{ report_stats['tax_min'] }}</td>
-        <td class="num">{{ report_stats['tax_median'] }}</td>
-        <td class="num">{{ report_stats['tax_max'] }}</td>
-    </tr>
-    <tr>
-        <td><strong>Employees</strong></td>
-        <td class="num">{{ report_stats['emp_min'] }}</td>
-        <td class="num">{{ report_stats['emp_median'] }}</td>
-        <td class="num">{{ report_stats['emp_max'] }}</td>
-    </tr>
-</table>
-{% endif %}
 
 <div class="submit-box" style="margin-top: 2rem;">
     <h2>Know of a public country by country report we're missing?</h2>

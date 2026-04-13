@@ -116,15 +116,49 @@ else:
     print('  Banks CbCR not found!')
     df_banks_unified = pd.DataFrame(columns=UNIFIED_COLUMNS)
 
-# --- 3. Combine ---
+# --- 3. Load PDF-extracted data ---
+
+print('\n=== Loading PDF-extracted data ===')
+pdf_extracted_path = os.path.join(os.path.dirname(OUTPUT_DIR), 'collected_reports', 'extracted_data.csv')
+if os.path.exists(pdf_extracted_path):
+    df_pdf = pd.read_csv(pdf_extracted_path)
+    print(f'  {len(df_pdf)} rows from {df_pdf["source_file"].nunique()} reports')
+
+    df_pdf_unified = pd.DataFrame({
+        'company_name': df_pdf['company_name'],
+        'bvd_id': None,
+        'upe_country_iso': df_pdf['country_iso'],
+        'sector': None,
+        'report_year': df_pdf['report_year'],
+        'jurisdiction_iso': None,
+        'jurisdiction_name': df_pdf['jurisdiction'],
+        'total_revenues': df_pdf.get('revenue'),
+        'unrelated_revenues': None,
+        'related_revenues': None,
+        'profit_before_tax': df_pdf.get('profit'),
+        'tax_accrued': df_pdf.get('tax_accrued'),
+        'tax_paid': df_pdf.get('tax_paid'),
+        'employees': df_pdf.get('employees'),
+        'tangible_assets': df_pdf.get('tangible_assets'),
+        'stated_capital': None,
+        'accumulated_earnings': None,
+        'currency': 'EUR',
+        'source': 'company_website',
+        'source_detail': df_pdf['source_file'],
+    })
+else:
+    print('  No PDF extracted data found')
+    df_pdf_unified = pd.DataFrame(columns=UNIFIED_COLUMNS)
+
+# --- 4. Combine ---
 
 print('\n=== Combining datasets ===')
-df_unified = pd.concat([df_tax_unified, df_banks_unified], ignore_index=True)
+df_unified = pd.concat([df_tax_unified, df_banks_unified, df_pdf_unified], ignore_index=True)
 print(f'  Total: {len(df_unified)} rows')
 print(f'  Companies: {df_unified["company_name"].nunique()}')
 print(f'  Years: {sorted(df_unified["report_year"].unique())}')
 
-# --- 4. Match company names to master firm list ---
+# --- 5. Match company names to master firm list ---
 
 print('\n=== Matching to master firm list ===')
 df_master = pd.read_csv(os.path.join(OUTPUT_DIR, 'master_firm_list.csv'),
@@ -238,14 +272,14 @@ if unmatched:
 # Standardize ISO codes to ISO2
 df_unified['upe_country_iso'] = df_unified['upe_country_iso'].map(ISO3_TO_ISO2).fillna(df_unified['upe_country_iso'])
 
-# --- 5. Save unified dataset ---
+# --- 6. Save unified dataset ---
 
 unified_path = os.path.join(OUTPUT_DIR, 'cbcr_unified.csv')
 df_unified.to_csv(unified_path, index=False)
 print(f'\n  Saved unified dataset to {unified_path}')
 print(f'  {len(df_unified)} rows, {df_unified["company_name"].nunique()} companies')
 
-# --- 6. Update tracking database ---
+# --- 7. Update tracking database ---
 
 print('\n=== Updating tracking database ===')
 conn = sqlite3.connect(DB_PATH)
@@ -319,7 +353,7 @@ for (company, year, source), group in df_unified.groupby(['company_name', 'repor
 
 conn.commit()
 
-# --- 7. Summary ---
+# --- 8. Summary ---
 
 print(f'  Reports added: {reports_added}')
 print(f'  Data rows added: {data_rows_added}')
@@ -346,7 +380,7 @@ print(f'\n  Compliance gap (in-scope, no report): {gap} firms')
 
 conn.close()
 
-# --- 8. Print data format specification ---
+# --- 9. Print data format specification ---
 
 print(f"""
 {'='*60}
