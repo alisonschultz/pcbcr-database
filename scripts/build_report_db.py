@@ -126,11 +126,26 @@ if os.path.exists(banks_csv) and os.path.exists(banks_match_csv):
     # Build name-to-bvd mapping
     name_to_bvd = dict(zip(df_match['tax_obs_name'], df_match['bvd_id']))
 
+    # ISO alpha-3 to alpha-2 mapping for common codes
+    iso3_to_iso2 = {
+        'AUT':'AT','BEL':'BE','BGR':'BG','HRV':'HR','CYP':'CY','CZE':'CZ',
+        'DNK':'DK','EST':'EE','FIN':'FI','FRA':'FR','DEU':'DE','GRC':'GR',
+        'HUN':'HU','IRL':'IE','ITA':'IT','LVA':'LV','LTU':'LT','LUX':'LU',
+        'MLT':'MT','NLD':'NL','POL':'PL','PRT':'PT','ROU':'RO','SVK':'SK',
+        'SVN':'SI','ESP':'ES','SWE':'SE','GBR':'GB','USA':'US','CHE':'CH',
+        'NOR':'NO','JPN':'JP','KOR':'KR','CHN':'CN','IND':'IN','BRA':'BR',
+        'AUS':'AU','CAN':'CA','MEX':'MX','ZAF':'ZA','SGP':'SG','TWN':'TW',
+        'CHL':'CL','TUR':'TR','RUS':'RU',
+    }
+
     # For unmatched banks, create placeholder firm entries
     unmatched_bank_names = set(df_banks['bank'].unique()) - set(name_to_bvd.keys())
     for bank_name in unmatched_bank_names:
         bank_rows = df_banks[df_banks['bank'] == bank_name]
         hq_code = bank_rows['hq_code'].iloc[0] if 'hq_code' in bank_rows.columns else None
+        # Normalize 3-letter to 2-letter ISO
+        if hq_code and len(str(hq_code)) == 3:
+            hq_code = iso3_to_iso2.get(str(hq_code).upper(), hq_code)
         placeholder_id = f'TAXOBS_BANK_{bank_name[:30].replace(" ", "_").upper()}'
         name_to_bvd[bank_name] = placeholder_id
         try:
@@ -234,6 +249,9 @@ if os.path.exists(extracted_csv):
         year = file_data['report_year'].iloc[0] if 'report_year' in file_data.columns else None
 
         if pd.isna(year) or not company_name:
+            continue
+        # Skip junk entries
+        if country_iso and len(str(country_iso)) != 2:
             continue
         year_int = int(year)
 
