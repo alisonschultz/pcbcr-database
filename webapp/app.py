@@ -287,9 +287,10 @@ def index():
         ).reset_index()
         agg = agg[agg['n_firms'] >= 3]
 
-        # Profitability per employee (only where employees > 0)
+        # Profitability per employee in USD (data is in EUR, convert at ~1.10)
+        EUR_USD = 1.10
         agg['profit_per_employee'] = agg.apply(
-            lambda r: round(r['profit'] / r['employees'], 0) if r['employees'] > 0 else None, axis=1)
+            lambda r: round(r['profit'] / r['employees'] * EUR_USD, 0) if r['employees'] > 0 else None, axis=1)
         # Profit per revenue
         agg['profit_per_revenue'] = agg.apply(
             lambda r: round(r['profit'] / r['revenue'] * 100, 1) if r['revenue'] > 0 else None, axis=1)

@@ -51,8 +51,8 @@
         per_employee: {
             values: data.profit_per_employee,
             label: 'Profit per employee',
-            yTitle: 'Profit / employee (reporting currency units)',
-            fmt: v => v.toLocaleString(undefined, {maximumFractionDigits: 0}),
+            yTitle: 'Profits per employee (USD)',
+            fmt: v => '$' + v.toLocaleString(undefined, {maximumFractionDigits: 0}),
         },
         per_revenue: {
             values: data.profit_per_revenue,
