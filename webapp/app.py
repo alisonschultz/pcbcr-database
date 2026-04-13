@@ -138,15 +138,21 @@ def index():
         FROM reports WHERE data_extracted = 1 GROUP BY source
     """).fetchall()
 
-    # In-scope by regime
-    regimes = db.execute("""
-        SELECT regime_classification, COUNT(*) as n
-        FROM firms
-        WHERE regime_classification NOT LIKE '%OUT_OF_SCOPE%'
-          AND regime_classification NOT LIKE '%CANDIDATE%'
-        GROUP BY regime_classification
-        ORDER BY n DESC
-    """).fetchall()
+    # In-scope by regime — consolidated into 4 categories (firms can appear in multiple)
+    regime_counts = []
+    for label, pattern in [
+        ('EU Directive 2021/2101', "regime_classification LIKE '%EU_2021_2101%' AND regime_classification NOT LIKE '%VIA_SUBSIDIARY%'"),
+        ('EU Directive (via subsidiary)', "regime_classification LIKE '%EU_2021_2101_VIA_SUBSIDIARY%'"),
+        ('CRD IV', "regime_classification LIKE '%CRD_IV%' AND regime_classification NOT LIKE '%VIA_SUBSIDIARY%'"),
+        ('CRD IV (via subsidiary)', "regime_classification LIKE '%CRD_IV_VIA_SUBSIDIARY%'"),
+    ]:
+        n = db.execute(f"""
+            SELECT COUNT(*) FROM firms
+            WHERE regime_classification NOT LIKE '%OUT_OF_SCOPE%'
+              AND regime_classification NOT LIKE '%CANDIDATE%'
+              AND {pattern}
+        """).fetchone()[0]
+        regime_counts.append({'label': label, 'n': n})
 
     # Countries by in-scope firms — only count reports with extracted CbCR data
     countries_with = db.execute("""
@@ -319,7 +325,7 @@ def index():
                            total_reports=total_reports,
                            total_data_rows=total_data_rows,
                            sources=sources,
-                           regimes=regimes,
+                           regime_counts=regime_counts,
                            countries_with=countries_with,
                            countries_without=countries_without,
                            report_stats=report_stats,

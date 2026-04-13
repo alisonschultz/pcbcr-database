@@ -11,19 +11,11 @@
     </div>
     <div class="stat-card success">
         <div class="value">{{ "{:,}".format(with_data) }}</div>
-        <div class="label">Firms with CbCR data</div>
+        <div class="label">Firms with CbCR data ({{ "{:,}".format(total_reports) }} reports)</div>
     </div>
     <div class="stat-card alert">
         <div class="value">{{ "{:,}".format(data_gap) }}</div>
         <div class="label">No CbCR data yet</div>
-    </div>
-    <div class="stat-card">
-        <div class="value">{{ "{:,}".format(total_reports) }}</div>
-        <div class="label">CbCR reports collected</div>
-    </div>
-    <div class="stat-card">
-        <div class="value">{{ "{:,}".format(total_data_rows) }}</div>
-        <div class="label">Jurisdiction-level data rows</div>
     </div>
 </div>
 
@@ -159,6 +151,22 @@
     {% endif %}
 </table>
 
+<h2>In-Scope by Regime</h2>
+<table>
+    <tr><th>Regime</th><th>Firms</th></tr>
+    {% for r in regime_counts %}
+    <tr>
+        <td>{{ r['label'] }}</td>
+        <td class="num">{{ "{:,}".format(r['n']) }}</td>
+    </tr>
+    {% endfor %}
+</table>
+<p style="font-size: 0.8rem; color: #888; margin-top: 0.3rem;">
+    Official texts:
+    <a href="https://eur-lex.europa.eu/eli/dir/2021/2101/oj" target="_blank">EU Directive 2021/2101</a> &middot;
+    <a href="https://eur-lex.europa.eu/eli/dir/2013/36/oj" target="_blank">CRD IV (Directive 2013/36/EU)</a>
+</p>
+
 <h2>In-Scope Firms by Headquarter Country</h2>
 
 <h3 style="color: #27ae60; font-size: 1rem; margin-top: 1rem;">Countries with report data</h3>
@@ -197,21 +205,6 @@
 </table>
 {% endif %}
 
-<h2>In-Scope by Regime</h2>
-<table>
-    <tr><th>Regime</th><th>Firms</th></tr>
-    {% for r in regimes %}
-    <tr>
-        <td><a href="/companies?regime={{ r['regime_classification'] }}" style="text-decoration:none;">{{ nice_regime(r['regime_classification']) }}</a></td>
-        <td class="num">{{ "{:,}".format(r['n']) }}</td>
-    </tr>
-    {% endfor %}
-</table>
-<p style="font-size: 0.8rem; color: #888; margin-top: 0.3rem;">
-    Official texts:
-    <a href="https://eur-lex.europa.eu/eli/dir/2021/2101/oj" target="_blank">EU Directive 2021/2101</a> &middot;
-    <a href="https://eur-lex.europa.eu/eli/dir/2013/36/oj" target="_blank">CRD IV (Directive 2013/36/EU)</a>
-</p>
 
 
 <div class="submit-box" style="margin-top: 2rem;">
