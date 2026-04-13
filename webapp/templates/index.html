@@ -156,16 +156,11 @@
     <tr><th>Regime</th><th>Firms</th></tr>
     {% for r in regime_counts %}
     <tr>
-        <td>{{ r['label'] }}</td>
+        <td>{% if r['url'] %}<a href="{{ r['url'] }}" target="_blank">{{ r['label'] }}</a>{% else %}{{ r['label'] }}{% endif %}</td>
         <td class="num">{{ "{:,}".format(r['n']) }}</td>
     </tr>
     {% endfor %}
 </table>
-<p style="font-size: 0.8rem; color: #888; margin-top: 0.3rem;">
-    Official texts:
-    <a href="https://eur-lex.europa.eu/eli/dir/2021/2101/oj" target="_blank">EU Directive 2021/2101</a> &middot;
-    <a href="https://eur-lex.europa.eu/eli/dir/2013/36/oj" target="_blank">CRD IV (Directive 2013/36/EU)</a>
-</p>
 
 <h2>In-Scope Firms by Headquarter Country</h2>
 

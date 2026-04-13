@@ -138,13 +138,21 @@ def index():
         FROM reports WHERE data_extracted = 1 GROUP BY source
     """).fetchall()
 
-    # In-scope by regime — consolidated into 4 categories (firms can appear in multiple)
+    # In-scope by regime — consolidated into 4 categories + voluntary (firms can appear in multiple)
     regime_counts = []
-    for label, pattern in [
-        ('EU Directive 2021/2101', "regime_classification LIKE '%EU_2021_2101%' AND regime_classification NOT LIKE '%VIA_SUBSIDIARY%'"),
-        ('EU Directive (via subsidiary)', "regime_classification LIKE '%EU_2021_2101_VIA_SUBSIDIARY%'"),
-        ('CRD IV', "regime_classification LIKE '%CRD_IV%' AND regime_classification NOT LIKE '%VIA_SUBSIDIARY%'"),
-        ('CRD IV (via subsidiary)', "regime_classification LIKE '%CRD_IV_VIA_SUBSIDIARY%'"),
+    for label, pattern, url in [
+        ('EU Directive 2021/2101',
+         "regime_classification LIKE '%EU_2021_2101%' AND regime_classification NOT LIKE '%VIA_SUBSIDIARY%'",
+         'https://eur-lex.europa.eu/eli/dir/2021/2101/oj'),
+        ('EU Directive (via subsidiary)',
+         "regime_classification LIKE '%EU_2021_2101_VIA_SUBSIDIARY%'",
+         'https://eur-lex.europa.eu/eli/dir/2021/2101/oj'),
+        ('CRD IV',
+         "regime_classification LIKE '%CRD_IV%' AND regime_classification NOT LIKE '%VIA_SUBSIDIARY%'",
+         'https://eur-lex.europa.eu/eli/dir/2013/36/oj'),
+        ('CRD IV (via subsidiary)',
+         "regime_classification LIKE '%CRD_IV_VIA_SUBSIDIARY%'",
+         'https://eur-lex.europa.eu/eli/dir/2013/36/oj'),
     ]:
         n = db.execute(f"""
             SELECT COUNT(*) FROM firms
@@ -152,7 +160,20 @@ def index():
               AND regime_classification NOT LIKE '%CANDIDATE%'
               AND {pattern}
         """).fetchone()[0]
-        regime_counts.append({'label': label, 'n': n})
+        regime_counts.append({'label': label, 'n': n, 'url': url})
+
+    # Voluntary: firms with CbCR data but not in any mandatory regime
+    voluntary = db.execute("""
+        SELECT COUNT(DISTINCT r.bvd_id) FROM reports r
+        JOIN firms f ON r.bvd_id = f.bvd_id
+        WHERE r.data_extracted = 1
+          AND (f.regime_classification LIKE '%OUT_OF_SCOPE%'
+               OR f.regime_classification LIKE '%UNKNOWN%'
+               OR f.regime_classification IS NULL
+               OR f.bvd_id LIKE 'UNMATCHED_%'
+               OR f.bvd_id LIKE 'PDF_%')
+    """).fetchone()[0]
+    regime_counts.append({'label': 'Voluntary', 'n': voluntary, 'url': None})
 
     # Countries by in-scope firms — only count reports with extracted CbCR data
     countries_with = db.execute("""
